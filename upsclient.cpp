@@ -35,12 +35,14 @@ void UPSClient::trackPackage(const QString& trackingNumber)
     url.setQuery(query);
 
     QNetworkRequest request(url);
-    request.setRawHeader("Content-Type", "application/json");
+    request.setHeader(QNetworkRequest::ContentTypeHeader, "application/json");
     request.setRawHeader("Authorization", QByteArray("Bearer ") + token.toUtf8());
     request.setRawHeader("transId", QDateTime::currentDateTime().toString("TRACKyyyyMMddhhmmss").toUtf8());
     request.setRawHeader("transactionSrc", "testing");
-
+    
     qDebug() << "Tracking package:" << trackingNumber;
+    qDebug() << "Request URL:" << url.toString();
+    qDebug() << "Authorization:" << "Bearer " + token.toUtf8();
     qDebug() << "Request URL:" << url.toString();
 
     QNetworkReply* reply = manager->get(request);
