@@ -52,7 +52,7 @@ MainWindow::MainWindow(QWidget *parent)
     setWindowFlags(windowFlags() | Qt::FramelessWindowHint);
     
     // Create a container widget for the frosted effect
-    QWidget* container = new QWidget(this);
+    container = new QWidget(this);
     container->setObjectName("container");
     
     // Apply frosted glass effect to container
@@ -60,7 +60,7 @@ MainWindow::MainWindow(QWidget *parent)
     container->setGraphicsEffect(effect);
     
     // Main layout for container
-    QVBoxLayout* containerLayout = new QVBoxLayout(container);
+    containerLayout = new QVBoxLayout(container);
     containerLayout->setContentsMargins(15, 15, 15, 15);
     containerLayout->setSpacing(10);
     

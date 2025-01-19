@@ -59,6 +59,8 @@ private:
     QMap<QString, QJsonObject> packageDetails;
     QSystemTrayIcon* trayIcon;
     SettingsDialog* settingsDialog;
+    QWidget* container;
+    QVBoxLayout* containerLayout;
 };
 
 #endif // MAINWINDOW_H
