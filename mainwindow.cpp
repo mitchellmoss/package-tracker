@@ -158,7 +158,20 @@ MainWindow::~MainWindow()
 void MainWindow::setupTrayIcon()
 {
     trayIcon = new QSystemTrayIcon(this);
-    trayIcon->setIcon(QIcon::fromTheme("package"));
+    
+    // Create a proper icon
+    QPixmap iconPixmap(64, 64);
+    iconPixmap.fill(Qt::transparent);
+    QPainter painter(&iconPixmap);
+    painter.setRenderHint(QPainter::Antialiasing);
+    painter.setBrush(QColor(100, 149, 237)); // Cornflower blue
+    painter.setPen(Qt::NoPen);
+    painter.drawEllipse(8, 8, 48, 48);
+    painter.setPen(Qt::white);
+    painter.setFont(QFont("Arial", 32));
+    painter.drawText(iconPixmap.rect(), Qt::AlignCenter, "📦");
+    
+    trayIcon->setIcon(QIcon(iconPixmap));
     
     QMenu* trayMenu = new QMenu(this);
     trayMenu->addAction("Show", this, &QWidget::show);
@@ -170,10 +183,6 @@ void MainWindow::setupTrayIcon()
 
 void MainWindow::setupUI()
 {
-    // Main layout
-    QWidget *centralWidget = new QWidget(this);
-    QVBoxLayout *mainLayout = new QVBoxLayout(centralWidget);
-    
     // Input area
     QHBoxLayout *inputLayout = new QHBoxLayout();
     trackingInput = new QLineEdit(this);
@@ -204,13 +213,7 @@ void MainWindow::setupUI()
     });
     setMenuBar(menuBar);
 
-    // Add to main layout
-    mainLayout->addLayout(inputLayout);
-    mainLayout->addWidget(packageList);
-    mainLayout->addWidget(detailsView);
-    
     // Add widgets to container
-    containerLayout->addLayout(inputLayout);
     containerLayout->addWidget(packageList);
     containerLayout->addWidget(detailsView);
     
