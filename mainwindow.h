@@ -51,8 +51,7 @@ private:
     void savePackages();
 public:
     void updateApiClients(const QString& fedexKey, const QString& fedexSecret, 
-                         const QString& upsId, const QString& upsSecret,
-                         const QString& upsAccessKey);
+                         const QString& upsId, const QString& upsSecret);
     QString detectCarrier(const QString& trackingNumber);
     
     QListWidget *packageList;

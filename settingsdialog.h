@@ -16,7 +16,6 @@ public:
     QLineEdit* fedexSecretInput;
     QLineEdit* upsIdInput;
     QLineEdit* upsSecretInput;
-    QLineEdit* upsAccessKeyInput;
 };
 
 #endif // SETTINGSDIALOG_H

@@ -216,17 +216,15 @@ MainWindow::MainWindow(QWidget *parent)
     QString fedexSecret = settings.value("fedexSecret").toString();
     QString upsId = settings.value("upsId").toString();
     QString upsSecret = settings.value("upsSecret").toString();
-    QString upsAccessKey = settings.value("upsAccessKey").toString();
 
     qDebug() << "Loading credentials:";
     qDebug() << "FedEx Key:" << (fedexKey.isEmpty() ? "Not set" : "Set");
     qDebug() << "FedEx Secret:" << (fedexSecret.isEmpty() ? "Not set" : "Set");
     qDebug() << "UPS ID:" << (upsId.isEmpty() ? "Not set" : "Set");
     qDebug() << "UPS Secret:" << (upsSecret.isEmpty() ? "Not set" : "Set");
-    qDebug() << "UPS Access Key:" << (upsAccessKey.isEmpty() ? "Not set" : "Set");
 
     fedexClient = new FedExClient(fedexKey, fedexSecret, this);
-    upsClient = new UPSClient(upsId, upsSecret, upsAccessKey, this);
+    upsClient = new UPSClient(upsId, upsSecret, this);
     
     // Connect FedEx signals
     connect(fedexClient, &FedExClient::trackingInfoReceived, this, [this](const QJsonObject& info) {
@@ -514,14 +512,13 @@ void MainWindow::loadPackages()
 }
 
 void MainWindow::updateApiClients(const QString& fedexKey, const QString& fedexSecret,
-                                 const QString& upsId, const QString& upsSecret,
-                                 const QString& upsAccessKey)
+                                 const QString& upsId, const QString& upsSecret)
 {
     fedexClient->deleteLater();
     upsClient->deleteLater();
     
     fedexClient = new FedExClient(fedexKey, fedexSecret, this);
-    upsClient = new UPSClient(upsId, upsSecret, upsAccessKey, this);
+    upsClient = new UPSClient(upsId, upsSecret, this);
 
     // Reconnect signals
     connect(fedexClient, &FedExClient::trackingInfoReceived, this, [this](const QJsonObject& info) {
