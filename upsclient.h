@@ -30,8 +30,10 @@ private:
     QString callbackUrl;
     
     QString getAuthToken();
-    bool verifyCredentials();
     void handleTrackingEvent(const QJsonObject& event);
+
+public:
+    bool verifyCredentials();
 };
 
 #endif // UPSCLIENT_H
