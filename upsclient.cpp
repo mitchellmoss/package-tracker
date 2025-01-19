@@ -14,6 +14,7 @@ UPSClient::UPSClient(const QString& clientId, const QString& clientSecret, QObje
     : QObject(parent), clientId(clientId), clientSecret(clientSecret)
 {
     manager = new QNetworkAccessManager(this);
+    authManager = new QNetworkAccessManager(this);  // Add this line
     connect(manager, &QNetworkAccessManager::finished, this, &UPSClient::onRequestFinished);
 }
 
@@ -214,7 +215,7 @@ QString UPSClient::getAuthToken()
     qDebug() << "Post data:" << postData;
 
     // Send the request
-    QNetworkReply* reply = manager->post(request, postData.toUtf8());
+    QNetworkReply* reply = authManager->post(request, postData.toUtf8());
     
     // Wait for reply with timeout
     QEventLoop loop;
@@ -276,6 +277,9 @@ QString UPSClient::getAuthToken()
     int expiresIn = obj["expires_in"].toInt();
     qDebug() << "Successfully retrieved UPS token, expires in:" << expiresIn << "seconds";
     qDebug() << "Successfully retrieved UPS token";
+    // ...
+
+    reply->deleteLater();  // Add this line before returning
     return token;
 }
 

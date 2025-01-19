@@ -25,10 +25,11 @@ private slots:
     
 private:
     QNetworkAccessManager* manager;
+    QNetworkAccessManager* authManager;  // Add this line
     QString clientId;
     QString clientSecret;
     QString callbackUrl;
-    
+
     QString getAuthToken();
     void handleTrackingEvent(const QJsonObject& event);
 
