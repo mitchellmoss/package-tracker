@@ -28,20 +28,14 @@ void UPSClient::trackPackage(const QString& trackingNumber)
 
     // Construct tracking URL with proper parameters
     QUrl url("https://wwwcie.ups.com/api/track/v1/details/" + trackingNumber);
-    QUrlQuery query;
-    query.addQueryItem("locale", "en_US");
-    query.addQueryItem("returnSignature", "false");
-    query.addQueryItem("returnMilestones", "false");
-    query.addQueryItem("returnPOD", "false");
-    url.setQuery(query);
 
     // Set up request with required headers
     QNetworkRequest request(url);
     request.setRawHeader("Authorization", "Bearer " + token.toUtf8());
-    request.setRawHeader("transId", QDateTime::currentDateTime().toString("TRACKyyyyMMddhhmmss").toUtf8());
+    request.setHeader(QNetworkRequest::ContentTypeHeader, "application/json");
+    request.setRawHeader("transId", QDateTime::currentDateTime().toString("yyyyMMddHHmmsszzz").toUtf8());
     request.setRawHeader("transactionSrc", "testing");
     request.setRawHeader("Accept", "application/json");
-    request.setRawHeader("Content-Type", "application/json");
     
     qDebug() << "Tracking package:" << trackingNumber;
     qDebug() << "Request URL:" << url.toString();
