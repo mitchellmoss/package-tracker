@@ -259,8 +259,39 @@ QString UPSClient::getAuthToken()
     QByteArray responseData = reply->readAll();
     qDebug() << "Raw UPS auth response:" << responseData;
     
-    // Check if response is empty
-    if (responseData.isEmpty()) {
+    // Parse the response
+    QJsonParseError parseError;
+    QJsonDocument doc = QJsonDocument::fromJson(responseData, &parseError);
+    
+    if (parseError.error != QJsonParseError::NoError) {
+        qDebug() << "JSON parse error:" << parseError.errorString();
+        emit trackingError("Failed to parse UPS auth response");
+        return QString();
+    }
+    
+    if (!doc.isObject()) {
+        qDebug() << "Invalid JSON response format";
+        emit trackingError("Invalid UPS auth response format");
+        return QString();
+    }
+    
+    QJsonObject obj = doc.object();
+    if (!obj.contains("access_token")) {
+        qDebug() << "No access token in response:" << obj;
+        emit trackingError("No access token in UPS response");
+        return QString();
+    }
+
+    QString token = obj["access_token"].toString();
+    qDebug() << "Successfully retrieved UPS token";
+    qDebug() << "Token details:";
+    qDebug() << "  - Type:" << obj["token_type"].toString();
+    qDebug() << "  - Expires in:" << obj["expires_in"].toString() << "seconds";
+    qDebug() << "  - Scope:" << (obj.contains("scope") ? obj["scope"].toString() : "none");
+    return token;
+}
+
+void UPSClient::onRequestFinished(QNetworkReply* reply)
         int statusCode = reply->attribute(QNetworkRequest::HttpStatusCodeAttribute).toInt();
         QString headers;
         for (const auto& header : reply->rawHeaderPairs()) {
