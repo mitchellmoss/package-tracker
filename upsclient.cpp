@@ -173,35 +173,33 @@ QString UPSClient::getAuthToken()
     QNetworkRequest request(url);
     request.setHeader(QNetworkRequest::ContentTypeHeader, "application/x-www-form-urlencoded");
 
-    // Create proper Basic Auth header
+    // Create proper Basic Auth header matching curl
     QString auth = QString("%1:%2").arg(clientId).arg(clientSecret);
     QString authHeader = "Basic " + auth.toUtf8().toBase64();
     request.setRawHeader("Authorization", authHeader.toUtf8());
-    request.setRawHeader("x-merchant-id", clientId.toUtf8());
+    
+    // Remove x-merchant-id header as it's not in the working curl request
+    // request.setRawHeader("x-merchant-id", clientId.toUtf8());
 
-    // Create form data
-    QUrlQuery params;
-    params.addQueryItem("grant_type", "client_credentials");
+    // Create form data as plain string to match curl
+    QString postData = "grant_type=client_credentials";
 
     // Add debug output
     qDebug() << "Requesting UPS auth token with client ID:" << clientId;
     qDebug() << "Auth header:" << authHeader;
-
-    QByteArray postData = params.toString(QUrl::FullyEncoded).toUtf8();
+    qDebug() << "Post data:" << postData;
     qDebug() << "UPS Auth Request URL:" << url;
     qDebug() << "UPS Auth Request Data:" << postData;
 
-    // Enable SSL
-    QSslConfiguration sslConfig = request.sslConfiguration();
-    sslConfig.setProtocol(QSsl::TlsV1_2);
-    sslConfig.setPeerVerifyMode(QSslSocket::VerifyPeer);
-    request.setSslConfiguration(sslConfig);
-
-    // Set additional required headers
-    request.setRawHeader("Accept", "application/json");
-    request.setRawHeader("Content-Length", QByteArray::number(postData.size()));
+    // Set content type header to match curl
+    request.setHeader(QNetworkRequest::ContentTypeHeader, "application/x-www-form-urlencoded");
     
-    QNetworkReply* reply = manager->post(request, postData);
+    // Remove other headers that weren't in the working curl request
+    // request.setRawHeader("Accept", "application/json");
+    // request.setRawHeader("Content-Length", QByteArray::number(postData.size()));
+    
+    // Send the request with the raw post data
+    QNetworkReply* reply = manager->post(request, postData.toUtf8());
     
     // Wait for reply with timeout
     QEventLoop loop;
