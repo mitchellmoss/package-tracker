@@ -26,7 +26,7 @@ void UPSClient::trackPackage(const QString& trackingNumber)
         return;
     }
 
-    QUrl url("https://wwwcie.ups.com/track/v1/details/" + trackingNumber);
+    QUrl url("https://wwwcie.ups.com/api/track/v1/details/" + trackingNumber);
     QUrlQuery query;
     query.addQueryItem("locale", "en_US");
     query.addQueryItem("returnSignature", "false");
@@ -38,7 +38,7 @@ void UPSClient::trackPackage(const QString& trackingNumber)
     request.setRawHeader("Authorization", ("Bearer " + token).toUtf8());
     request.setRawHeader("transId", "TRACK" + QDateTime::currentDateTime().toString("yyyyMMddhhmmss").toUtf8());
     request.setRawHeader("transactionSrc", "testing");
-    request.setRawHeader("X-UPS-AccessLicenseNumber", accessLicenseNumber.toUtf8());
+    request.setRawHeader("X-UPS-Access-License-Number", accessLicenseNumber.toUtf8());
 
     qDebug() << "Tracking package:" << trackingNumber;
     qDebug() << "Request URL:" << url.toString();
