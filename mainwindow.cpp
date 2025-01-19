@@ -100,6 +100,11 @@ MainWindow::MainWindow(QWidget *parent)
     titleBarLayout->addWidget(closeButton);
     titleBarLayout->addWidget(minimizeButton);
     titleBarLayout->addWidget(maximizeButton);
+    
+    // Add title
+    QLabel* titleLabel = new QLabel("C++ Package Tracker by Mitchell Moss", container);
+    titleLabel->setStyleSheet("color: black; font-weight: bold; margin-left: 10px;");
+    titleBarLayout->addWidget(titleLabel);
     titleBarLayout->addStretch();
     
     connect(closeButton, &QToolButton::clicked, this, &QMainWindow::close);
