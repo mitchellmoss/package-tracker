@@ -1,12 +1,14 @@
 TEMPLATE = app
 TARGET = PackageTracker
 
-QT += core gui widgets
+QT += core gui widgets network
 
 SOURCES += main.cpp \
-           mainwindow.cpp
+           mainwindow.cpp \
+           fedexclient.cpp
 
-HEADERS += mainwindow.h
+HEADERS += mainwindow.h \
+           fedexclient.h
 
 # Specify Homebrew's Qt installation path
 QMAKE_MACOSX_DEPLOYMENT_TARGET = 14.0

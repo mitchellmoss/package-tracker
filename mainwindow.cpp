@@ -10,6 +10,17 @@
 MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent)
 {
+    // Initialize FedEx client with your API credentials
+    fedexClient = new FedExClient("YOUR_FEDEX_API_KEY", "YOUR_FEDEX_API_SECRET", this);
+    connect(fedexClient, &FedExClient::trackingInfoReceived, this, [this](const QJsonObject& info) {
+        QString trackingNumber = info["trackingNumber"].toString();
+        packageDetails[trackingNumber] = info;
+        showPackageDetails(trackingNumber);
+    });
+    connect(fedexClient, &FedExClient::trackingError, this, [this](const QString& error) {
+        QMessageBox::warning(this, "Tracking Error", error);
+    });
+
     setupUI();
     loadPackages();
 }
@@ -81,14 +92,46 @@ void MainWindow::removePackage()
 
 void MainWindow::refreshPackages()
 {
-    // TODO: Implement API calls to refresh all packages
-    QMessageBox::information(this, "Info", "Refresh functionality not yet implemented");
+    for (int i = 0; i < packageList->count(); ++i) {
+        QString trackingNumber = packageList->item(i)->text();
+        fedexClient->trackPackage(trackingNumber);
+    }
 }
 
 void MainWindow::showPackageDetails(QListWidgetItem *item)
 {
-    // TODO: Implement API call to get package details
-    detailsView->setText("Package details for: " + item->text());
+    showPackageDetails(item->text());
+}
+
+void MainWindow::showPackageDetails(const QString& trackingNumber)
+{
+    if (packageDetails.contains(trackingNumber)) {
+        QJsonObject info = packageDetails[trackingNumber];
+        QString details = QString("Tracking Number: %1\nStatus: %2\n")
+            .arg(trackingNumber)
+            .arg(info["status"].toString());
+        
+        if (info.contains("estimatedDelivery")) {
+            details += QString("Estimated Delivery: %1\n")
+                .arg(info["estimatedDelivery"].toString());
+        }
+        
+        if (info.contains("events")) {
+            details += "\nTracking History:\n";
+            QJsonArray events = info["events"].toArray();
+            for (const QJsonValue& event : events) {
+                QJsonObject e = event.toObject();
+                details += QString("- %1: %2\n")
+                    .arg(e["timestamp"].toString())
+                    .arg(e["description"].toString());
+            }
+        }
+        
+        detailsView->setText(details);
+    } else {
+        detailsView->setText("Loading details for: " + trackingNumber);
+        fedexClient->trackPackage(trackingNumber);
+    }
 }
 
 void MainWindow::loadPackages()
