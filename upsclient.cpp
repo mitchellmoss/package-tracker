@@ -25,29 +25,54 @@ void UPSClient::trackPackage(const QString& trackingNumber)
         return;
     }
 
-    QUrl url("https://onlinetools.ups.com/api/track/v1/details/" + trackingNumber);
+    QUrl url("https://wwwcie.ups.com/api/track/v1/details/" + trackingNumber);
+    QUrlQuery query;
+    query.addQueryItem("locale", "en_US");
+    query.addQueryItem("returnSignature", "false");
+    query.addQueryItem("returnMilestones", "false");
+    query.addQueryItem("returnPOD", "false");
+    url.setQuery(query);
+
     QNetworkRequest request(url);
     request.setRawHeader("Authorization", ("Bearer " + token).toUtf8());
-    request.setHeader(QNetworkRequest::ContentTypeHeader, "application/json");
     request.setRawHeader("transId", "TRACK" + QDateTime::currentDateTime().toString("yyyyMMddhhmmss").toUtf8());
-    request.setRawHeader("transactionSrc", "PackageTracker");
+    request.setRawHeader("transactionSrc", "testing");
 
-    // Add debug output
     qDebug() << "Tracking package:" << trackingNumber;
-    qDebug() << "Using token:" << token;
+    qDebug() << "Request URL:" << url.toString();
 
     QNetworkReply* reply = manager->get(request);
     
     connect(reply, &QNetworkReply::finished, this, [this, reply]() {
         if (reply->error() != QNetworkReply::NoError) {
-            qDebug() << "Tracking Error:" << reply->errorString();
-            qDebug() << "Response:" << reply->readAll();
-            emit trackingError(reply->errorString());
+            QString error = reply->errorString();
+            QByteArray response = reply->readAll();
+            qDebug() << "Tracking Error:" << error;
+            qDebug() << "Response:" << response;
+            
+            // Try to parse error details
+            QJsonParseError parseError;
+            QJsonDocument doc = QJsonDocument::fromJson(response, &parseError);
+            if (parseError.error == QJsonParseError::NoError && doc.isObject()) {
+                QJsonObject obj = doc.object();
+                if (obj.contains("response") && obj["response"].toObject().contains("errors")) {
+                    QJsonArray errors = obj["response"].toObject()["errors"].toArray();
+                    if (!errors.isEmpty()) {
+                        error = errors[0].toObject()["message"].toString();
+                    }
+                }
+            }
+            
+            emit trackingError(error);
             return;
         }
 
-        QJsonDocument doc = QJsonDocument::fromJson(reply->readAll());
-        if (!doc.isObject()) {
+        QByteArray response = reply->readAll();
+        qDebug() << "Tracking Response:" << response;
+        
+        QJsonParseError parseError;
+        QJsonDocument doc = QJsonDocument::fromJson(response, &parseError);
+        if (parseError.error != QJsonParseError::NoError || !doc.isObject()) {
             emit trackingError("Invalid response format");
             return;
         }
@@ -169,36 +194,23 @@ void UPSClient::handleTrackingEvent(const QJsonObject& event)
 
 QString UPSClient::getAuthToken()
 {
-    QUrl url("https://onlinetools.ups.com/security/v1/oauth/token");
+    QUrl url("https://wwwcie.ups.com/security/v1/oauth/token");
     QNetworkRequest request(url);
     request.setHeader(QNetworkRequest::ContentTypeHeader, "application/x-www-form-urlencoded");
 
-    // Create proper Basic Auth header matching curl
+    // Create Basic Auth header
     QString auth = QString("%1:%2").arg(clientId).arg(clientSecret);
     QString authHeader = "Basic " + auth.toUtf8().toBase64();
     request.setRawHeader("Authorization", authHeader.toUtf8());
-    
-    // Remove x-merchant-id header as it's not in the working curl request
-    // request.setRawHeader("x-merchant-id", clientId.toUtf8());
 
-    // Create form data as plain string to match curl
+    // Create form data
     QString postData = "grant_type=client_credentials";
 
-    // Add debug output
     qDebug() << "Requesting UPS auth token with client ID:" << clientId;
     qDebug() << "Auth header:" << authHeader;
     qDebug() << "Post data:" << postData;
-    qDebug() << "UPS Auth Request URL:" << url;
-    qDebug() << "UPS Auth Request Data:" << postData;
 
-    // Set content type header to match curl
-    request.setHeader(QNetworkRequest::ContentTypeHeader, "application/x-www-form-urlencoded");
-    
-    // Remove other headers that weren't in the working curl request
-    // request.setRawHeader("Accept", "application/json");
-    // request.setRawHeader("Content-Length", QByteArray::number(postData.size()));
-    
-    // Send the request with the raw post data
+    // Send the request
     QNetworkReply* reply = manager->post(request, postData.toUtf8());
     
     // Wait for reply with timeout
@@ -209,151 +221,44 @@ QString UPSClient::getAuthToken()
 
     // Check for network errors
     if (reply->error() != QNetworkReply::NoError) {
-        QString headers;
-        for (const auto& pair : reply->rawHeaderPairs()) {
-            headers += QString("%1: %2\n").arg(QString(pair.first)).arg(QString(pair.second));
-        }
-        QString errorDetails = QString("Network Error: %1\nURL: %2\nHeaders:\n%3")
-            .arg(reply->errorString())
-            .arg(url.toString())
-            .arg(headers);
-        qDebug() << errorDetails;
-        emit trackingError(errorDetails);
+        QString error = reply->errorString();
+        QByteArray response = reply->readAll();
+        qDebug() << "Auth Error:" << error;
+        qDebug() << "Response:" << response;
+        emit trackingError(error);
         return QString();
     }
 
-    // Verify SSL
-    if (!reply->sslConfiguration().isNull()) {
-        QSslCertificate cert = reply->sslConfiguration().peerCertificate();
-        if (cert.isNull()) {
-            qDebug() << "SSL Certificate verification failed";
-            emit trackingError("SSL Certificate verification failed");
-            return QString();
-        }
-    }
-    
     // Read response data
     QByteArray responseData = reply->readAll();
-    
-    // Log raw response including non-printable characters
-    qDebug() << "Raw response bytes:" << responseData.toHex();
-    qDebug() << "Raw response string:" << responseData;
-    
-    // Check for SSL errors by connecting to the sslErrors signal
-    QList<QSslError> sslErrors;
-    connect(reply, &QNetworkReply::sslErrors, this, [this, &sslErrors](const QList<QSslError> &errors) {
-        sslErrors = errors;
-        if (!sslErrors.isEmpty()) {
-            qDebug() << "SSL Errors:";
-            for (const QSslError& error : sslErrors) {
-                qDebug() << " -" << error.errorString();
-            }
-            emit trackingError("SSL Error: " + sslErrors.first().errorString());
-        }
-    });
+    qDebug() << "Auth Response:" << responseData;
 
-    qDebug() << "Response Headers:";
-    for (const QByteArray& header : reply->rawHeaderList()) {
-        qDebug() << " -" << header << ":" << reply->rawHeader(header);
-    }
-    
-    // Check response status code
-    int statusCode = reply->attribute(QNetworkRequest::HttpStatusCodeAttribute).toInt();
-    qDebug() << "Status Code:" << statusCode;
-    
-    if (responseData.isEmpty()) {
-        QString headers;
-        for (const auto& pair : reply->rawHeaderPairs()) {
-            headers += QString("%1: %2\n").arg(QString(pair.first)).arg(QString(pair.second));
-        }
-        QString errorDetails = QString("Empty response received\nStatus: %1\nHeaders:\n%2")
-            .arg(statusCode)
-            .arg(headers);
-        qDebug() << errorDetails;
-        
-        if (statusCode == 200) {
-            emit trackingError("Received empty response with 200 status - check API credentials and permissions");
-        } else {
-            emit trackingError(QString("Empty response from UPS API\nStatus: %1").arg(statusCode));
-        }
-        return QString();
-    }
-
-    // Check if response is HTML (could indicate an error page)
-    if (responseData.startsWith("<!DOCTYPE") || responseData.startsWith("<html")) {
-        QString errorDetails = QString("Received HTML response instead of JSON\nResponse: %1")
-            .arg(QString(responseData.left(500))); // Show first 500 chars
-        qDebug() << errorDetails;
-        emit trackingError("UPS API returned HTML error page - check API endpoint URL");
-        return QString();
-    }
-    
-    if (statusCode != 200) {
-        qDebug() << "UPS Auth Error - Status Code:" << statusCode;
-        qDebug() << "Response:" << responseData;
-        
-        // Try to parse error details
-        QJsonParseError parseError;
-        QJsonDocument errorDoc = QJsonDocument::fromJson(responseData, &parseError);
-        if (parseError.error == QJsonParseError::NoError && errorDoc.isObject()) {
-            QJsonObject errorObj = errorDoc.object();
-            QString errorMessage;
-            
-            // Check for different error formats
-            if (errorObj.contains("response")) {
-                errorMessage = errorObj["response"].toObject()["errors"].toArray()[0].toObject()["message"].toString();
-            } else if (errorObj.contains("error")) {
-                errorMessage = errorObj["error"].toString();
-                if (errorObj.contains("error_description")) {
-                    errorMessage += ": " + errorObj["error_description"].toString();
-                }
-            } else {
-                errorMessage = "Unknown error format";
-            }
-            
-            emit trackingError(QString("UPS Auth Error (%1): %2").arg(statusCode).arg(errorMessage));
-        } else {
-            // Check for HTML response which might indicate a different error
-            if (responseData.contains("<html") || responseData.contains("<!DOCTYPE")) {
-                emit trackingError("UPS API returned HTML error page - check API endpoint URL");
-            } else {
-                emit trackingError(QString("UPS Auth Error (%1): %2").arg(statusCode).arg(reply->errorString()));
-            }
-        }
-        return QString();
-    }
-
-    qDebug() << "Raw UPS auth response:" << responseData;
-    
     // Parse the response
     QJsonParseError parseError;
     QJsonDocument doc = QJsonDocument::fromJson(responseData, &parseError);
     
-    if (parseError.error != QJsonParseError::NoError) {
-        qDebug() << "JSON parse error:" << parseError.errorString();
+    if (parseError.error != QJsonParseError::NoError || !doc.isObject()) {
         emit trackingError("Failed to parse UPS auth response");
-        return QString();
-    }
-    
-    if (!doc.isObject()) {
-        qDebug() << "Invalid JSON response format";
-        emit trackingError("Invalid UPS auth response format");
         return QString();
     }
     
     QJsonObject obj = doc.object();
     if (!obj.contains("access_token")) {
-        qDebug() << "No access token in response:" << obj;
-        emit trackingError("No access token in UPS response");
+        // Check for error details
+        if (obj.contains("response") && obj["response"].toObject().contains("errors")) {
+            QJsonArray errors = obj["response"].toObject()["errors"].toArray();
+            if (!errors.isEmpty()) {
+                QString error = errors[0].toObject()["message"].toString();
+                emit trackingError(error);
+            }
+        } else {
+            emit trackingError("No access token in UPS response");
+        }
         return QString();
     }
 
     QString token = obj["access_token"].toString();
     qDebug() << "Successfully retrieved UPS token";
-    qDebug() << "Token details:";
-    qDebug() << "  - Type:" << obj["token_type"].toString();
-    qDebug() << "  - Expires in:" << obj["expires_in"].toString() << "seconds";
-    qDebug() << "  - Scope:" << (obj.contains("scope") ? obj["scope"].toString() : "none");
     return token;
 }
 
