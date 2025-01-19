@@ -8,6 +8,7 @@
 #include <QTextEdit>
 #include <QSettings>
 #include "fedexclient.h"
+#include "upsclient.h"
 
 class MainWindow : public QMainWindow
 {
@@ -37,6 +38,7 @@ private:
     
     QSettings settings;
     FedExClient* fedexClient;
+    UPSClient* upsClient;
     QMap<QString, QJsonObject> packageDetails;
 };
 

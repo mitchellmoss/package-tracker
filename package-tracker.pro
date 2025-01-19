@@ -5,10 +5,12 @@ QT += core gui widgets network
 
 SOURCES += main.cpp \
            mainwindow.cpp \
-           fedexclient.cpp
+           fedexclient.cpp \
+           upsclient.cpp
 
 HEADERS += mainwindow.h \
-           fedexclient.h
+           fedexclient.h \
+           upsclient.h
 
 # Specify Homebrew's Qt installation path
 QMAKE_MACOSX_DEPLOYMENT_TARGET = 14.0

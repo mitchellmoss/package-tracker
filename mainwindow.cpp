@@ -10,15 +10,29 @@
 MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent)
 {
-    // Initialize FedEx client with your API credentials
+    // Initialize API clients with your credentials
     fedexClient = new FedExClient("YOUR_FEDEX_API_KEY", "YOUR_FEDEX_API_SECRET", this);
+    upsClient = new UPSClient("YOUR_UPS_CLIENT_ID", "YOUR_UPS_CLIENT_SECRET", this);
+    // Connect FedEx signals
     connect(fedexClient, &FedExClient::trackingInfoReceived, this, [this](const QJsonObject& info) {
         QString trackingNumber = info["trackingNumber"].toString();
         packageDetails[trackingNumber] = info;
+        packageDetails[trackingNumber]["carrier"] = "FedEx";
         showPackageDetails(trackingNumber);
     });
     connect(fedexClient, &FedExClient::trackingError, this, [this](const QString& error) {
-        QMessageBox::warning(this, "Tracking Error", error);
+        QMessageBox::warning(this, "FedEx Tracking Error", error);
+    });
+
+    // Connect UPS signals
+    connect(upsClient, &UPSClient::trackingInfoReceived, this, [this](const QJsonObject& info) {
+        QString trackingNumber = info["trackingNumber"].toString();
+        packageDetails[trackingNumber] = info;
+        packageDetails[trackingNumber]["carrier"] = "UPS";
+        showPackageDetails(trackingNumber);
+    });
+    connect(upsClient, &UPSClient::trackingError, this, [this](const QString& error) {
+        QMessageBox::warning(this, "UPS Tracking Error", error);
     });
 
     setupUI();
@@ -94,7 +108,13 @@ void MainWindow::refreshPackages()
 {
     for (int i = 0; i < packageList->count(); ++i) {
         QString trackingNumber = packageList->item(i)->text();
-        fedexClient->trackPackage(trackingNumber);
+        
+        // Try to detect carrier based on tracking number format
+        if (trackingNumber.startsWith("1Z")) {
+            upsClient->trackPackage(trackingNumber);
+        } else {
+            fedexClient->trackPackage(trackingNumber);
+        }
     }
 }
 
@@ -107,7 +127,9 @@ void MainWindow::showPackageDetails(const QString& trackingNumber)
 {
     if (packageDetails.contains(trackingNumber)) {
         QJsonObject info = packageDetails[trackingNumber];
-        QString details = QString("Tracking Number: %1\nStatus: %2\n")
+        QString carrier = info.contains("carrier") ? info["carrier"].toString() : "Unknown Carrier";
+        QString details = QString("Carrier: %1\nTracking Number: %2\nStatus: %3\n")
+            .arg(carrier)
             .arg(trackingNumber)
             .arg(info["status"].toString());
         
