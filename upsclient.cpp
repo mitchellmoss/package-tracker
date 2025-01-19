@@ -209,17 +209,42 @@ QString UPSClient::getAuthToken()
     connect(reply, &QNetworkReply::finished, &loop, &QEventLoop::quit);
     
     loop.exec();
+
+    // Check for network errors
+    if (reply->error() != QNetworkReply::NoError) {
+        qDebug() << "Network Error:" << reply->error();
+        qDebug() << "Error String:" << reply->errorString();
+        emit trackingError("Network Error: " + reply->errorString());
+        return QString();
+    }
     
     // Check for SSL errors
-    if (reply->error() == QNetworkReply::SslHandshakeFailedError) {
-        qDebug() << "SSL Handshake Failed";
-        emit trackingError("SSL Handshake Failed - check your SSL configuration");
+    QList<QSslError> sslErrors = reply->sslErrors();
+    if (!sslErrors.isEmpty()) {
+        qDebug() << "SSL Errors:";
+        for (const QSslError& error : sslErrors) {
+            qDebug() << " -" << error.errorString();
+        }
+        emit trackingError("SSL Error: " + sslErrors.first().errorString());
         return QString();
     }
 
+    // Read response
+    QByteArray responseData = reply->readAll();
+    qDebug() << "Response Headers:";
+    for (const QByteArray& header : reply->rawHeaderList()) {
+        qDebug() << " -" << header << ":" << reply->rawHeader(header);
+    }
+    
     // Check response status code
     int statusCode = reply->attribute(QNetworkRequest::HttpStatusCodeAttribute).toInt();
-    QString response = reply->readAll();
+    qDebug() << "Status Code:" << statusCode;
+    
+    if (responseData.isEmpty()) {
+        qDebug() << "Empty response received";
+        emit trackingError("Empty response from UPS API");
+        return QString();
+    }
     
     if (statusCode != 200) {
         qDebug() << "UPS Auth Error - Status Code:" << statusCode;
