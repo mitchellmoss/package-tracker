@@ -221,16 +221,18 @@ QString UPSClient::getAuthToken()
     // Read response data
     QByteArray responseData = reply->readAll();
     
-    // Check for SSL errors
-    QList<QSslError> sslErrors = reply->sslErrors();
-    if (!sslErrors.isEmpty()) {
-        qDebug() << "SSL Errors:";
-        for (const QSslError& error : sslErrors) {
-            qDebug() << " -" << error.errorString();
+    // Check for SSL errors by connecting to the sslErrors signal
+    QList<QSslError> sslErrors;
+    connect(reply, &QNetworkReply::sslErrors, this, [this, &sslErrors](const QList<QSslError> &errors) {
+        sslErrors = errors;
+        if (!sslErrors.isEmpty()) {
+            qDebug() << "SSL Errors:";
+            for (const QSslError& error : sslErrors) {
+                qDebug() << " -" << error.errorString();
+            }
+            emit trackingError("SSL Error: " + sslErrors.first().errorString());
         }
-        emit trackingError("SSL Error: " + sslErrors.first().errorString());
-        return QString();
-    }
+    });
 
     qDebug() << "Response Headers:";
     for (const QByteArray& header : reply->rawHeaderList()) {
