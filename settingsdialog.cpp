@@ -4,6 +4,7 @@
 #include <QFormLayout>
 #include <QPushButton>
 #include <QSettings>
+#include <QMessageBox>
 
 SettingsDialog::SettingsDialog(QWidget *parent)
     : QDialog(parent)
