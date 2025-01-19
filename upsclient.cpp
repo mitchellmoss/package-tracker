@@ -38,7 +38,7 @@ void UPSClient::trackPackage(const QString& trackingNumber)
     request.setRawHeader("Authorization", ("Bearer " + token).toUtf8());
     request.setRawHeader("transId", "TRACK" + QDateTime::currentDateTime().toString("yyyyMMddhhmmss").toUtf8());
     request.setRawHeader("transactionSrc", "testing");
-    request.setRawHeader("AccessLicenseNumber", accessLicenseNumber.toUtf8());
+    request.setRawHeader("X-UPS-AccessLicenseNumber", accessLicenseNumber.toUtf8());
 
     qDebug() << "Tracking package:" << trackingNumber;
     qDebug() << "Request URL:" << url.toString();
