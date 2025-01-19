@@ -55,24 +55,56 @@ MainWindow::MainWindow(QWidget *parent)
     FrostedGlassEffect* effect = new FrostedGlassEffect(this);
     setGraphicsEffect(effect);
     
-    // Set window background color with transparency
+    // Set window background color with transparency and clear boundaries
     setStyleSheet(R"(
         QMainWindow {
-            background-color: rgba(255, 255, 255, 0.7);
+            background-color: rgba(245, 245, 245, 0.95);
             border-radius: 10px;
+            border: 1px solid rgba(200, 200, 200, 0.5);
         }
-        QListWidget, QTextEdit, QLineEdit {
-            background-color: rgba(255, 255, 255, 0.8);
+        QWidget#centralWidget {
+            background-color: transparent;
+            padding: 15px;
+        }
+        QListWidget {
+            background-color: rgba(255, 255, 255, 0.9);
+            border-radius: 8px;
+            border: 1px solid rgba(0, 0, 0, 0.1);
+            padding: 5px;
+        }
+        QTextEdit {
+            background-color: rgba(255, 255, 255, 0.9);
+            border-radius: 8px;
+            border: 1px solid rgba(0, 0, 0, 0.1);
+            padding: 10px;
+        }
+        QLineEdit {
+            background-color: rgba(255, 255, 255, 0.9);
             border-radius: 5px;
+            border: 1px solid rgba(0, 0, 0, 0.1);
             padding: 5px;
         }
         QPushButton {
             background-color: rgba(255, 255, 255, 0.9);
             border-radius: 5px;
-            padding: 5px;
+            border: 1px solid rgba(0, 0, 0, 0.1);
+            padding: 5px 10px;
+            min-width: 60px;
         }
         QPushButton:hover {
-            background-color: rgba(255, 255, 255, 1.0);
+            background-color: rgba(240, 240, 240, 1.0);
+        }
+        QMenuBar {
+            background-color: transparent;
+            border-bottom: 1px solid rgba(200, 200, 200, 0.3);
+        }
+        QMenuBar::item {
+            background-color: transparent;
+            padding: 5px 10px;
+        }
+        QMenuBar::item:selected {
+            background-color: rgba(200, 200, 200, 0.3);
+            border-radius: 4px;
         }
     )");
     // Initialize API clients with your credentials
@@ -169,12 +201,19 @@ void MainWindow::setupUI()
     mainLayout->addWidget(packageList);
     mainLayout->addWidget(detailsView);
     
-    // Add drop shadow
+    // Set object name for central widget for styling
+    centralWidget->setObjectName("centralWidget");
+    
+    // Add drop shadow with more subtle effect
     QGraphicsDropShadowEffect* shadow = new QGraphicsDropShadowEffect;
-    shadow->setBlurRadius(20);
-    shadow->setColor(QColor(0, 0, 0, 160));
-    shadow->setOffset(0, 0);
+    shadow->setBlurRadius(15);
+    shadow->setColor(QColor(0, 0, 0, 80));
+    shadow->setOffset(2, 2);
     centralWidget->setGraphicsEffect(shadow);
+    
+    // Add padding and spacing
+    mainLayout->setSpacing(10);
+    mainLayout->setContentsMargins(10, 10, 10, 10);
     
     setCentralWidget(centralWidget);
     
