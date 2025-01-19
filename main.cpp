@@ -10,8 +10,8 @@ int main(int argc, char *argv[])
     app.setApplicationVersion("1.0");
     app.setOrganizationName("MyCompany");
     
-    MainWindow mainWindow;
-    mainWindow.show();
+    MainWindow* mainWindow = new MainWindow();
+    mainWindow->show();
     
     return app.exec();
 }

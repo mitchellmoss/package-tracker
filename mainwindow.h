@@ -12,6 +12,7 @@
 #include <QMenu>
 #include <QCoreApplication>
 #include <QGraphicsEffect>
+#include <QVBoxLayout>
 #include "fedexclient.h"
 #include "upsclient.h"
 #include "settingsdialog.h"
