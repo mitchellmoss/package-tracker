@@ -292,64 +292,29 @@ QString UPSClient::getAuthToken()
 }
 
 void UPSClient::onRequestFinished(QNetworkReply* reply)
-        int statusCode = reply->attribute(QNetworkRequest::HttpStatusCodeAttribute).toInt();
-        QString headers;
-        for (const auto& header : reply->rawHeaderPairs()) {
-            headers += header.first + ": " + header.second + "\n";
-        }
-        
-        qDebug() << "Empty response from UPS API";
-        qDebug() << "HTTP Status:" << statusCode;
-        qDebug() << "Headers:" << headers;
-        
-        if (statusCode == 401) {
-            emit trackingError("Authentication failed - check your UPS API credentials");
-        } else if (statusCode == 403) {
-            emit trackingError("Access denied - verify your UPS API permissions");
-        } else {
-            emit trackingError("Empty response from UPS API - check network connection and API endpoint");
-        }
-        return QString();
-    }
-    
-    // Parse the response
-    QJsonParseError parseError;
-    QJsonDocument doc = QJsonDocument::fromJson(response.toUtf8(), &parseError);
-    
-    if (parseError.error != QJsonParseError::NoError) {
-        qDebug() << "JSON parse error:" << parseError.errorString();
-        emit trackingError("Failed to parse UPS auth response");
-        return QString();
-    }
-    
-    if (!doc.isObject()) {
-        qDebug() << "Invalid JSON response format";
-        emit trackingError("Invalid UPS auth response format");
-        return QString();
-    }
-    
-    QJsonObject obj = doc.object();
-    if (!obj.contains("access_token")) {
-        qDebug() << "No access token in response:" << obj;
-        emit trackingError("No access token in UPS response");
-        return QString();
-    }
-
-    QString token = obj["access_token"].toString();
-    qDebug() << "Successfully retrieved UPS token";
-    qDebug() << "Token type:" << obj["token_type"].toString();
-    qDebug() << "Expires in:" << obj["expires_in"].toString();
-    return token;
-}
-
-void UPSClient::onRequestFinished(QNetworkReply* reply)
 {
     if (reply->error() != QNetworkReply::NoError) {
-        emit trackingError(reply->errorString());
+        QString errorMessage = reply->errorString();
+        QByteArray response = reply->readAll();
+        
+        // Try to parse error response
+        QJsonParseError parseError;
+        QJsonDocument errorDoc = QJsonDocument::fromJson(response, &parseError);
+        if (parseError.error == QJsonParseError::NoError && errorDoc.isObject()) {
+            QJsonObject errorObj = errorDoc.object();
+            if (errorObj.contains("response")) {
+                errorMessage = errorObj["response"].toObject()["errors"].toArray()[0].toObject()["message"].toString();
+            }
+        }
+        
+        qDebug() << "UPS API Error:" << errorMessage;
+        qDebug() << "Response:" << response;
+        emit trackingError(errorMessage);
         return;
     }
 
-    QJsonDocument doc = QJsonDocument::fromJson(reply->readAll());
+    QByteArray responseData = reply->readAll();
+    QJsonDocument doc = QJsonDocument::fromJson(responseData);
     if (!doc.isObject()) {
         emit trackingError("Invalid response format");
         return;
@@ -357,6 +322,11 @@ void UPSClient::onRequestFinished(QNetworkReply* reply)
 
     QJsonObject result;
     QJsonObject trackResponse = doc.object()["trackResponse"].toObject();
+    if (!trackResponse.contains("shipment")) {
+        emit trackingError("Invalid tracking response format");
+        return;
+    }
+
     QJsonObject shipment = trackResponse["shipment"].toArray().first().toObject();
     
     result["trackingNumber"] = shipment["trackingNumber"].toString();
