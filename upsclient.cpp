@@ -206,7 +206,24 @@ QString UPSClient::getAuthToken()
     QEventLoop loop;
     QTimer::singleShot(10000, &loop, &QEventLoop::quit);
     connect(reply, &QNetworkReply::finished, &loop, &QEventLoop::quit);
+    
+    // Enable SSL verification
+    QSslConfiguration sslConfig = reply->sslConfiguration();
+    sslConfig.setPeerVerifyMode(QSslSocket::VerifyPeer);
+    reply->setSslConfiguration(sslConfig);
+    
     loop.exec();
+    
+    // Check SSL errors
+    if (reply->sslHandshakeErrors().count() > 0) {
+        QString sslErrors;
+        for (const QSslError &error : reply->sslHandshakeErrors()) {
+            sslErrors += error.errorString() + "\n";
+        }
+        qDebug() << "SSL Errors:" << sslErrors;
+        emit trackingError("SSL Handshake Error: " + sslErrors);
+        return QString();
+    }
 
     if (reply->error() != QNetworkReply::NoError) {
         QString response = reply->readAll();
@@ -236,6 +253,15 @@ QString UPSClient::getAuthToken()
     QByteArray responseData = reply->readAll();
     qDebug() << "Raw UPS auth response:" << responseData;
     
+    // Check if response is empty
+    if (responseData.isEmpty()) {
+        qDebug() << "Empty response from UPS API";
+        qDebug() << "HTTP Status:" << reply->attribute(QNetworkRequest::HttpStatusCodeAttribute).toInt();
+        qDebug() << "Headers:" << reply->rawHeaderPairs();
+        emit trackingError("Empty response from UPS API - check network connection and API endpoint");
+        return QString();
+    }
+    
     // First try to parse as JSON
     QJsonParseError parseError;
     QJsonDocument doc = QJsonDocument::fromJson(responseData, &parseError);
@@ -249,6 +275,8 @@ QString UPSClient::getAuthToken()
         
         qDebug() << "JSON parse error:" << parseError.errorString();
         qDebug() << "Response data:" << responseData;
+        qDebug() << "HTTP Status:" << reply->attribute(QNetworkRequest::HttpStatusCodeAttribute).toInt();
+        qDebug() << "Headers:" << reply->rawHeaderPairs();
         emit trackingError(QString("Failed to parse UPS auth response: %1").arg(parseError.errorString()));
         return QString();
     }
