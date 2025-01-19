@@ -5,6 +5,7 @@
 #include <QPainter>
 #include <QGraphicsBlurEffect>
 #include <QGraphicsPixmapItem>
+#include <QGraphicsScene>  // Add this include
 #include <QScreen>
 #include <QWindow>
 #include <QFile>
