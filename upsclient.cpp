@@ -335,7 +335,7 @@ void UPSClient::onRequestFinished(QNetworkReply* reply)
     QJsonObject response = doc.object();
     
     if (!response.contains("trackResponse")) {
-        emit trackingError("Invalid tracking response format");
+        emit trackingError("Invalid response format - missing trackResponse");
         return;
     }
 
@@ -352,28 +352,52 @@ void UPSClient::onRequestFinished(QNetworkReply* reply)
     }
 
     QJsonObject shipment = shipments.first().toObject();
+    if (!shipment.contains("package")) {
+        emit trackingError("No package data in response");
+        return;
+    }
+
+    QJsonArray packages = shipment["package"].toArray();
+    if (packages.isEmpty()) {
+        emit trackingError("No package data available");
+        return;
+    }
+
+    QJsonObject package = packages.first().toObject();
     
-    result["trackingNumber"] = shipment["trackingNumber"].toString();
-    result["status"] = shipment["currentStatus"].toObject()["description"].toString();
+    // Set tracking number and status
+    result["trackingNumber"] = package["trackingNumber"].toString();
+    if (package.contains("currentStatus")) {
+        result["status"] = package["currentStatus"].toObject()["description"].toString();
+    }
     
+    // Parse tracking events
     QJsonArray events;
-    if (shipment.contains("activity")) {
-        for (const QJsonValue& activity : shipment["activity"].toArray()) {
+    if (package.contains("activity")) {
+        for (const QJsonValue& activity : package["activity"].toArray()) {
             QJsonObject event = activity.toObject();
+            QString location;
+            if (event["location"].toObject().contains("address")) {
+                QJsonObject address = event["location"].toObject()["address"].toObject();
+                QString city = address["city"].toString();
+                QString state = address["stateProvince"].toString();
+                location = city + (state.isEmpty() ? "" : ", " + state);
+            }
+            
             events.append(QJsonObject{
                 {"timestamp", event["date"].toString() + " " + event["time"].toString()},
                 {"description", event["status"].toObject()["description"].toString()},
-                {"location", event["location"].toObject()["address"].toObject()["city"].toString() + ", " + 
-                           event["location"].toObject()["address"].toObject()["stateProvince"].toString()}
+                {"location", location}
             });
         }
     }
     result["events"] = events;
     
-    if (shipment.contains("deliveryDate")) {
-        QJsonObject delivery = shipment["deliveryDate"].toObject();
-        result["estimatedDelivery"] = delivery["date"].toString();
+    // Add delivery date if available
+    if (package.contains("deliveryDate") && !package["deliveryDate"].toArray().isEmpty()) {
+        result["estimatedDelivery"] = package["deliveryDate"].toArray().first().toString();
     }
     
+    qDebug() << "Emitting tracking info:" << result;
     emit trackingInfoReceived(result);
 }
