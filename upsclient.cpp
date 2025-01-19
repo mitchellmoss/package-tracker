@@ -219,6 +219,8 @@ QString UPSClient::getAuthToken()
     }
     
     // Check for SSL errors
+    // Read response data first
+    
     // Check for SSL errors
     const QList<QSslError>& sslErrors = reply->sslErrors();
     if (!sslErrors.isEmpty()) {
@@ -230,7 +232,6 @@ QString UPSClient::getAuthToken()
         return QString();
     }
 
-    // Read response
     qDebug() << "Response Headers:";
     for (const QByteArray& header : reply->rawHeaderList()) {
         qDebug() << " -" << header << ":" << reply->rawHeader(header);
