@@ -16,6 +16,7 @@
 #include <QAction>
 #include <QIcon>
 #include <QTimer>
+#include <QLabel>  // Add this include for QLabel
 
 void FrostedGlassEffect::draw(QPainter* painter)
 {
