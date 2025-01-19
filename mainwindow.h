@@ -49,6 +49,7 @@ private:
     void setupUI();
     void loadPackages();
     void savePackages();
+    QString detectCarrier(const QString& trackingNumber);
     
     QListWidget *packageList;
     QPushButton *addButton;

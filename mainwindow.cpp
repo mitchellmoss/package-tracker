@@ -387,14 +387,29 @@ void MainWindow::refreshPackages()
 {
     for (int i = 0; i < packageList->count(); ++i) {
         QString trackingNumber = packageList->item(i)->text();
+        QString carrier = detectCarrier(trackingNumber);
         
-        // Try to detect carrier based on tracking number format
-        if (trackingNumber.startsWith("1Z")) {
+        if (carrier == "UPS") {
             upsClient->trackPackage(trackingNumber);
-        } else {
+        } else if (carrier == "FedEx") {
             fedexClient->trackPackage(trackingNumber);
+        } else {
+            qDebug() << "Unknown carrier for tracking number:" << trackingNumber;
         }
     }
+}
+
+QString MainWindow::detectCarrier(const QString& trackingNumber)
+{
+    // UPS tracking numbers start with 1Z and are 18 digits
+    if (trackingNumber.startsWith("1Z") && trackingNumber.length() == 18) {
+        return "UPS";
+    }
+    // FedEx tracking numbers are 12, 15, or 20 digits
+    else if (trackingNumber.length() == 12 || trackingNumber.length() == 15 || trackingNumber.length() == 20) {
+        return "FedEx";
+    }
+    return "Unknown";
 }
 
 void MainWindow::showPackageDetails(QListWidgetItem *item)
@@ -404,6 +419,8 @@ void MainWindow::showPackageDetails(QListWidgetItem *item)
 
 void MainWindow::showPackageDetails(const QString& trackingNumber)
 {
+    QString carrier = detectCarrier(trackingNumber);
+    
     if (packageDetails.contains(trackingNumber)) {
         QJsonObject info = packageDetails[trackingNumber];
         QString carrier = info.contains("carrier") ? info["carrier"].toString() : "Unknown Carrier";
@@ -447,7 +464,15 @@ void MainWindow::showPackageDetails(const QString& trackingNumber)
         detailsView->setText(details);
     } else {
         detailsView->setText("Loading details for: " + trackingNumber);
-        fedexClient->trackPackage(trackingNumber);
+        
+        QString carrier = detectCarrier(trackingNumber);
+        if (carrier == "UPS") {
+            upsClient->trackPackage(trackingNumber);
+        } else if (carrier == "FedEx") {
+            fedexClient->trackPackage(trackingNumber);
+        } else {
+            detailsView->setText("Unknown carrier for tracking number: " + trackingNumber);
+        }
     }
 }
 
