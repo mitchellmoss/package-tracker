@@ -1,12 +1,14 @@
 #include "upsclient.h"
 #include <QJsonDocument>
 #include <QJsonObject>
-#include <QJsonArray>  // Add this include
+#include <QJsonArray>
 #include <QNetworkRequest>
 #include <QUrl>
 #include <QUrlQuery>
 #include <QEventLoop>
 #include <QTimer>
+#include <QDateTime>
+#include <QDebug>
 
 UPSClient::UPSClient(const QString& clientId, const QString& clientSecret, QObject *parent)
     : QObject(parent), clientId(clientId), clientSecret(clientSecret)
@@ -27,8 +29,18 @@ void UPSClient::trackPackage(const QString& trackingNumber)
     QNetworkRequest request(url);
     request.setRawHeader("Authorization", ("Bearer " + token).toUtf8());
     request.setHeader(QNetworkRequest::ContentTypeHeader, "application/json");
+    request.setRawHeader("transId", "TRACK" + QDateTime::currentDateTime().toString("yyyyMMddhhmmss").toUtf8());
+    request.setRawHeader("transactionSrc", "PackageTracker");
 
-    manager->get(request);
+    QNetworkReply* reply = manager->get(request);
+    
+    // Add debug output
+    connect(reply, &QNetworkReply::finished, this, [this, reply]() {
+        if (reply->error() != QNetworkReply::NoError) {
+            qDebug() << "Tracking Error:" << reply->errorString();
+            qDebug() << "Response:" << reply->readAll();
+        }
+    });
 }
 
 QString UPSClient::getAuthToken()
@@ -37,26 +49,42 @@ QString UPSClient::getAuthToken()
     QNetworkRequest request(url);
     request.setHeader(QNetworkRequest::ContentTypeHeader, "application/x-www-form-urlencoded");
 
+    // Create proper Basic Auth header
+    QString auth = QString("%1:%2").arg(clientId).arg(clientSecret);
+    QString authHeader = "Basic " + auth.toUtf8().toBase64();
+    request.setRawHeader("Authorization", authHeader.toUtf8());
+
+    // Create form data
     QUrlQuery params;
     params.addQueryItem("grant_type", "client_credentials");
-
-    QString auth = QString("%1:%2").arg(clientId).arg(clientSecret);
-    request.setRawHeader("Authorization", "Basic " + auth.toUtf8().toBase64());
 
     QNetworkReply* reply = manager->post(request, params.toString(QUrl::FullyEncoded).toUtf8());
     
     // Wait for reply with timeout
     QEventLoop loop;
-    QTimer::singleShot(5000, &loop, &QEventLoop::quit);
+    QTimer::singleShot(10000, &loop, &QEventLoop::quit); // Increased timeout
     connect(reply, &QNetworkReply::finished, &loop, &QEventLoop::quit);
     loop.exec();
 
     if (reply->error() != QNetworkReply::NoError) {
+        qDebug() << "Auth Error:" << reply->errorString();
+        qDebug() << "Response:" << reply->readAll();
         return QString();
     }
 
     QJsonDocument doc = QJsonDocument::fromJson(reply->readAll());
-    return doc.object()["access_token"].toString();
+    if (!doc.isObject()) {
+        qDebug() << "Invalid JSON response";
+        return QString();
+    }
+
+    QJsonObject obj = doc.object();
+    if (!obj.contains("access_token")) {
+        qDebug() << "No access token in response:" << obj;
+        return QString();
+    }
+
+    return obj["access_token"].toString();
 }
 
 void UPSClient::onRequestFinished(QNetworkReply* reply)
