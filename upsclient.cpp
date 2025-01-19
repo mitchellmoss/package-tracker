@@ -224,14 +224,24 @@ QString UPSClient::getAuthToken()
         QString error = reply->errorString();
         QByteArray response = reply->readAll();
         qDebug() << "Auth Error:" << error;
-        qDebug() << "Response:" << response;
-        emit trackingError(error);
+        qDebug() << "Status Code:" << reply->attribute(QNetworkRequest::HttpStatusCodeAttribute).toInt();
+        qDebug() << "Response Headers:" << reply->rawHeaderPairs();
+        qDebug() << "Response Body:" << response;
+        emit trackingError("Authentication failed: " + error);
         return QString();
     }
 
     // Read response data
     QByteArray responseData = reply->readAll();
-    qDebug() << "Auth Response:" << responseData;
+    qDebug() << "Auth Response Status:" << reply->attribute(QNetworkRequest::HttpStatusCodeAttribute).toInt();
+    qDebug() << "Auth Response Headers:" << reply->rawHeaderPairs();
+    qDebug() << "Auth Response Body:" << responseData;
+
+    if (responseData.isEmpty()) {
+        qDebug() << "Empty response received from UPS auth endpoint";
+        emit trackingError("Empty response received from UPS authentication");
+        return QString();
+    }
 
     // Parse the response
     QJsonParseError parseError;
@@ -262,31 +272,6 @@ QString UPSClient::getAuthToken()
     return token;
 }
 
-bool UPSClient::verifyCredentials() {
-    QString token = getAuthToken();
-    if (token.isEmpty()) {
-        return false;
-    }
-    
-    // Make a test tracking request
-    QUrl url("https://onlinetools.ups.com/api/track/v1/details/1Z9999999999999999");
-    QNetworkRequest request(url);
-    request.setRawHeader("Authorization", ("Bearer " + token).toUtf8());
-    request.setHeader(QNetworkRequest::ContentTypeHeader, "application/json");
-    
-    QNetworkReply* reply = manager->get(request);
-    
-    QEventLoop loop;
-    connect(reply, &QNetworkReply::finished, &loop, &QEventLoop::quit);
-    loop.exec();
-    
-    if (reply->error() != QNetworkReply::NoError) {
-        qDebug() << "Credential verification failed:" << reply->errorString();
-        return false;
-    }
-    
-    return true;
-}
 
 void UPSClient::onRequestFinished(QNetworkReply* reply)
 {
