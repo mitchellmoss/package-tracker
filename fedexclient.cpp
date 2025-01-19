@@ -63,9 +63,11 @@ QString FedExClient::getAuthToken()
     loop.exec();
 
     if (reply->error() != QNetworkReply::NoError) {
+        QString response = reply->readAll();
         qDebug() << "FedEx Auth Error:" << reply->errorString();
-        qDebug() << "Response:" << reply->readAll();
-        emit trackingError("Failed to authenticate with FedEx");
+        qDebug() << "Status Code:" << reply->attribute(QNetworkRequest::HttpStatusCodeAttribute).toInt();
+        qDebug() << "Response:" << response;
+        emit trackingError(QString("FedEx Auth Error: %1\nResponse: %2").arg(reply->errorString()).arg(response));
         return QString();
     }
 

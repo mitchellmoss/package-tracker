@@ -212,16 +212,19 @@ MainWindow::MainWindow(QWidget *parent)
     )");
     // Initialize API clients with saved credentials
     QSettings settings;
-    fedexClient = new FedExClient(
-        settings.value("fedexKey").toString(),
-        settings.value("fedexSecret").toString(),
-        this
-    );
-    upsClient = new UPSClient(
-        settings.value("upsId").toString(),
-        settings.value("upsSecret").toString(),
-        this
-    );
+    QString fedexKey = settings.value("fedexKey").toString();
+    QString fedexSecret = settings.value("fedexSecret").toString();
+    QString upsId = settings.value("upsId").toString();
+    QString upsSecret = settings.value("upsSecret").toString();
+    
+    qDebug() << "Loading credentials:";
+    qDebug() << "FedEx Key:" << (fedexKey.isEmpty() ? "Not set" : "Set");
+    qDebug() << "FedEx Secret:" << (fedexSecret.isEmpty() ? "Not set" : "Set");
+    qDebug() << "UPS ID:" << (upsId.isEmpty() ? "Not set" : "Set");
+    qDebug() << "UPS Secret:" << (upsSecret.isEmpty() ? "Not set" : "Set");
+    
+    fedexClient = new FedExClient(fedexKey, fedexSecret, this);
+    upsClient = new UPSClient(upsId, upsSecret, this);
     // Connect FedEx signals
     connect(fedexClient, &FedExClient::trackingInfoReceived, this, [this](const QJsonObject& info) {
         QString trackingNumber = info["trackingNumber"].toString();

@@ -197,8 +197,14 @@ QString UPSClient::getAuthToken()
     loop.exec();
 
     if (reply->error() != QNetworkReply::NoError) {
-        qDebug() << "Auth Error:" << reply->errorString();
-        qDebug() << "Response:" << reply->readAll();
+        QString response = reply->readAll();
+        qDebug() << "UPS Auth Error:" << reply->errorString();
+        qDebug() << "Status Code:" << reply->attribute(QNetworkRequest::HttpStatusCodeAttribute).toInt();
+        qDebug() << "Response:" << response;
+        emit trackingError(QString("UPS Auth Error: %1\nStatus: %2\nResponse: %3")
+                          .arg(reply->errorString())
+                          .arg(reply->attribute(QNetworkRequest::HttpStatusCodeAttribute).toInt())
+                          .arg(response));
         return QString();
     }
 
