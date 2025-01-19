@@ -32,7 +32,7 @@ SettingsDialog::SettingsDialog(QWidget *parent)
         settings.setValue("upsSecret", upsSecretInput->text());
         
         // Update clients with new credentials
-        MainWindow* mainWindow = qobject_cast<MainWindow*>(parent());
+        MainWindow* mainWindow = qobject_cast<MainWindow*>(parent);
         if (mainWindow) {
             mainWindow->updateApiClients(
                 fedexKeyInput->text(),
