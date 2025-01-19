@@ -1,7 +1,8 @@
 TEMPLATE = app
 TARGET = PackageTracker
 
-QT += core gui widgets network ssl
+QT += core gui widgets network
+CONFIG += ssl
 
 SOURCES += main.cpp \
            mainwindow.cpp \
