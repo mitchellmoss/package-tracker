@@ -57,23 +57,42 @@ MainWindow::MainWindow(QWidget *parent)
     
     // Add window controls
     QHBoxLayout* titleBarLayout = new QHBoxLayout();
-    titleBarLayout->setContentsMargins(0, 0, 0, 0);
-    titleBarLayout->setSpacing(5);
+    titleBarLayout->setContentsMargins(10, 5, 10, 5);
+    titleBarLayout->setSpacing(8);
     
-    QToolButton* minimizeButton = new QToolButton(container);
-    minimizeButton->setObjectName("minimizeButton");
-    minimizeButton->setIcon(QIcon::fromTheme("window-minimize"));
-    
+    // Close button
     QToolButton* closeButton = new QToolButton(container);
     closeButton->setObjectName("closeButton");
-    closeButton->setIcon(QIcon::fromTheme("window-close"));
+    closeButton->setFixedSize(12, 12);
+    closeButton->setStyleSheet("background-color: #ff5f56; border-radius: 6px; border: none;");
     
-    titleBarLayout->addStretch();
-    titleBarLayout->addWidget(minimizeButton);
+    // Minimize button
+    QToolButton* minimizeButton = new QToolButton(container);
+    minimizeButton->setObjectName("minimizeButton");
+    minimizeButton->setFixedSize(12, 12);
+    minimizeButton->setStyleSheet("background-color: #ffbd2e; border-radius: 6px; border: none;");
+    
+    // Maximize button
+    QToolButton* maximizeButton = new QToolButton(container);
+    maximizeButton->setObjectName("maximizeButton");
+    maximizeButton->setFixedSize(12, 12);
+    maximizeButton->setStyleSheet("background-color: #27c93f; border-radius: 6px; border: none;");
+    
+    // Add buttons to layout
     titleBarLayout->addWidget(closeButton);
+    titleBarLayout->addWidget(minimizeButton);
+    titleBarLayout->addWidget(maximizeButton);
+    titleBarLayout->addStretch();
     
-    connect(minimizeButton, &QToolButton::clicked, this, &QMainWindow::showMinimized);
     connect(closeButton, &QToolButton::clicked, this, &QMainWindow::close);
+    connect(minimizeButton, &QToolButton::clicked, this, &QMainWindow::showMinimized);
+    connect(maximizeButton, &QToolButton::clicked, this, [this]() {
+        if (isMaximized()) {
+            showNormal();
+        } else {
+            showMaximized();
+        }
+    });
     
     // Apply frosted glass effect to container
     FrostedGlassEffect* effect = new FrostedGlassEffect(container);
@@ -131,15 +150,14 @@ MainWindow::MainWindow(QWidget *parent)
             background-color: transparent;
             border-bottom: 1px solid rgba(200, 200, 200, 0.3);
         }
-        #minimizeButton, #closeButton {
-            background-color: transparent;
+        #closeButton, #minimizeButton, #maximizeButton {
             border: none;
-            padding: 5px;
-            border-radius: 4px;
+            padding: 0;
+            margin: 0 4px;
         }
-        #minimizeButton:hover, #closeButton:hover {
-            background-color: rgba(200, 200, 200, 0.3);
-        }
+        #closeButton:hover { background-color: #e0443e; }
+        #minimizeButton:hover { background-color: #e6a723; }
+        #maximizeButton:hover { background-color: #1faf2f; }
         QMenuBar::item {
             background-color: transparent;
             padding: 5px 10px;
