@@ -45,7 +45,7 @@ void FrostedGlassEffect::draw(QPainter* painter)
 }
 
 MainWindow::MainWindow(QWidget *parent)
-    : QMainWindow(parent)
+    : QMainWindow(parent), mousePressed(false)
 {
     // Enable translucent background
     setAttribute(Qt::WA_TranslucentBackground);
@@ -55,6 +55,26 @@ MainWindow::MainWindow(QWidget *parent)
     container = new QWidget(this);
     container->setObjectName("container");
     
+    // Add window controls
+    QHBoxLayout* titleBarLayout = new QHBoxLayout();
+    titleBarLayout->setContentsMargins(0, 0, 0, 0);
+    titleBarLayout->setSpacing(5);
+    
+    QToolButton* minimizeButton = new QToolButton(container);
+    minimizeButton->setObjectName("minimizeButton");
+    minimizeButton->setIcon(QIcon::fromTheme("window-minimize"));
+    
+    QToolButton* closeButton = new QToolButton(container);
+    closeButton->setObjectName("closeButton");
+    closeButton->setIcon(QIcon::fromTheme("window-close"));
+    
+    titleBarLayout->addStretch();
+    titleBarLayout->addWidget(minimizeButton);
+    titleBarLayout->addWidget(closeButton);
+    
+    connect(minimizeButton, &QToolButton::clicked, this, &QMainWindow::showMinimized);
+    connect(closeButton, &QToolButton::clicked, this, &QMainWindow::close);
+    
     // Apply frosted glass effect to container
     FrostedGlassEffect* effect = new FrostedGlassEffect(container);
     container->setGraphicsEffect(effect);
@@ -63,6 +83,7 @@ MainWindow::MainWindow(QWidget *parent)
     containerLayout = new QVBoxLayout(container);
     containerLayout->setContentsMargins(15, 15, 15, 15);
     containerLayout->setSpacing(10);
+    containerLayout->addLayout(titleBarLayout);
     
     // Set window styles
     setStyleSheet(R"(
@@ -109,6 +130,15 @@ MainWindow::MainWindow(QWidget *parent)
         QMenuBar {
             background-color: transparent;
             border-bottom: 1px solid rgba(200, 200, 200, 0.3);
+        }
+        #minimizeButton, #closeButton {
+            background-color: transparent;
+            border: none;
+            padding: 5px;
+            border-radius: 4px;
+        }
+        #minimizeButton:hover, #closeButton:hover {
+            background-color: rgba(200, 200, 200, 0.3);
         }
         QMenuBar::item {
             background-color: transparent;
@@ -183,6 +213,31 @@ void MainWindow::setupTrayIcon()
     
     trayIcon->setContextMenu(trayMenu);
     trayIcon->show();
+}
+
+void MainWindow::mousePressEvent(QMouseEvent* event)
+{
+    if (event->button() == Qt::LeftButton) {
+        dragPosition = event->globalPos() - frameGeometry().topLeft();
+        mousePressed = true;
+        event->accept();
+    }
+}
+
+void MainWindow::mouseMoveEvent(QMouseEvent* event)
+{
+    if (mousePressed && (event->buttons() & Qt::LeftButton)) {
+        move(event->globalPos() - dragPosition);
+        event->accept();
+    }
+}
+
+void MainWindow::mouseReleaseEvent(QMouseEvent* event)
+{
+    if (event->button() == Qt::LeftButton) {
+        mousePressed = false;
+        event->accept();
+    }
 }
 
 void MainWindow::setupUI()

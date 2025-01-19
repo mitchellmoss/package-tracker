@@ -13,6 +13,9 @@
 #include <QCoreApplication>
 #include <QGraphicsEffect>
 #include <QVBoxLayout>
+#include <QHBoxLayout>
+#include <QToolButton>
+#include <QMouseEvent>
 #include "fedexclient.h"
 #include "upsclient.h"
 #include "settingsdialog.h"
@@ -62,6 +65,8 @@ private:
     SettingsDialog* settingsDialog;
     QWidget* container;
     QVBoxLayout* containerLayout;
+    QPoint dragPosition;
+    bool mousePressed;
 };
 
 #endif // MAINWINDOW_H
