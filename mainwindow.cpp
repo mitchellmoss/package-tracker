@@ -134,7 +134,7 @@ MainWindow::MainWindow(QWidget *parent)
             background-color: rgba(255, 255, 255, 0.98);
             border-radius: 12px;
             border: 1px solid rgba(0, 0, 0, 0.1);
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+            /* box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1); */
         }
         QMainWindow {
             background-color: transparent;

@@ -32,10 +32,13 @@ void UPSClient::trackPackage(const QString& trackingNumber)
     request.setRawHeader("transId", "TRACK" + QDateTime::currentDateTime().toString("yyyyMMddhhmmss").toUtf8());
     request.setRawHeader("transactionSrc", "PackageTracker");
 
+    // Add debug output
+    qDebug() << "Tracking package:" << trackingNumber;
+    qDebug() << "Using token:" << token;
+
     QNetworkReply* reply = manager->get(request);
     
-    // Add debug output
-    connect(reply, &QNetworkReply::finished, this, [this, reply]() {
+    connect(reply, &QNetworkReply::finished, this, [reply]() {
         if (reply->error() != QNetworkReply::NoError) {
             qDebug() << "Tracking Error:" << reply->errorString();
             qDebug() << "Response:" << reply->readAll();
@@ -57,6 +60,10 @@ QString UPSClient::getAuthToken()
     // Create form data
     QUrlQuery params;
     params.addQueryItem("grant_type", "client_credentials");
+
+    // Add debug output
+    qDebug() << "Requesting UPS auth token with client ID:" << clientId;
+    qDebug() << "Auth header:" << authHeader;
 
     QNetworkReply* reply = manager->post(request, params.toString(QUrl::FullyEncoded).toUtf8());
     
