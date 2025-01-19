@@ -225,6 +225,12 @@ MainWindow::MainWindow(QWidget *parent)
     
     fedexClient = new FedExClient(fedexKey, fedexSecret, this);
     upsClient = new UPSClient(upsId, upsSecret, this);
+    
+    // Verify credentials
+    if (!upsClient->verifyCredentials()) {
+        QMessageBox::critical(this, "Invalid Credentials", 
+            "Failed to verify UPS API credentials. Please check your Client ID and Secret.");
+    }
     // Connect FedEx signals
     connect(fedexClient, &FedExClient::trackingInfoReceived, this, [this](const QJsonObject& info) {
         QString trackingNumber = info["trackingNumber"].toString();

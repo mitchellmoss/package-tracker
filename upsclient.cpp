@@ -207,15 +207,27 @@ QString UPSClient::getAuthToken()
     QEventLoop loop;
     QTimer::singleShot(10000, &loop, &QEventLoop::quit);
     connect(reply, &QNetworkReply::finished, &loop, &QEventLoop::quit);
-    
     loop.exec();
 
     // Check for network errors
     if (reply->error() != QNetworkReply::NoError) {
-        qDebug() << "Network Error:" << reply->error();
-        qDebug() << "Error String:" << reply->errorString();
-        emit trackingError("Network Error: " + reply->errorString());
+        QString errorDetails = QString("Network Error: %1\nURL: %2\nHeaders: %3")
+            .arg(reply->errorString())
+            .arg(url.toString())
+            .arg(reply->rawHeaderPairs());
+        qDebug() << errorDetails;
+        emit trackingError(errorDetails);
         return QString();
+    }
+
+    // Verify SSL
+    if (!reply->sslConfiguration().isNull()) {
+        QSslCertificate cert = reply->sslConfiguration().peerCertificate();
+        if (cert.isNull()) {
+            qDebug() << "SSL Certificate verification failed";
+            emit trackingError("SSL Certificate verification failed");
+            return QString();
+        }
     }
     
     // Read response data
@@ -248,12 +260,25 @@ QString UPSClient::getAuthToken()
     qDebug() << "Status Code:" << statusCode;
     
     if (responseData.isEmpty()) {
-        qDebug() << "Empty response received";
+        QString errorDetails = QString("Empty response received\nStatus: %1\nHeaders: %2")
+            .arg(statusCode)
+            .arg(reply->rawHeaderPairs());
+        qDebug() << errorDetails;
+        
         if (statusCode == 200) {
-            emit trackingError("Received empty response with 200 status - check API credentials");
+            emit trackingError("Received empty response with 200 status - check API credentials and permissions");
         } else {
-            emit trackingError("Empty response from UPS API");
+            emit trackingError(QString("Empty response from UPS API\nStatus: %1").arg(statusCode));
         }
+        return QString();
+    }
+
+    // Check if response is HTML (could indicate an error page)
+    if (responseData.startsWith("<!DOCTYPE") || responseData.startsWith("<html")) {
+        QString errorDetails = QString("Received HTML response instead of JSON\nResponse: %1")
+            .arg(QString(responseData.left(500))); // Show first 500 chars
+        qDebug() << errorDetails;
+        emit trackingError("UPS API returned HTML error page - check API endpoint URL");
         return QString();
     }
     
@@ -324,6 +349,32 @@ QString UPSClient::getAuthToken()
     qDebug() << "  - Expires in:" << obj["expires_in"].toString() << "seconds";
     qDebug() << "  - Scope:" << (obj.contains("scope") ? obj["scope"].toString() : "none");
     return token;
+}
+
+bool UPSClient::verifyCredentials() {
+    QString token = getAuthToken();
+    if (token.isEmpty()) {
+        return false;
+    }
+    
+    // Make a test tracking request
+    QUrl url("https://onlinetools.ups.com/api/track/v1/details/1Z9999999999999999");
+    QNetworkRequest request(url);
+    request.setRawHeader("Authorization", ("Bearer " + token).toUtf8());
+    request.setHeader(QNetworkRequest::ContentTypeHeader, "application/json");
+    
+    QNetworkReply* reply = manager->get(request);
+    
+    QEventLoop loop;
+    connect(reply, &QNetworkReply::finished, &loop, &QEventLoop::quit);
+    loop.exec();
+    
+    if (reply->error() != QNetworkReply::NoError) {
+        qDebug() << "Credential verification failed:" << reply->errorString();
+        return false;
+    }
+    
+    return true;
 }
 
 void UPSClient::onRequestFinished(QNetworkReply* reply)

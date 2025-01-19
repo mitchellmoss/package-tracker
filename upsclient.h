@@ -30,6 +30,7 @@ private:
     QString callbackUrl;
     
     QString getAuthToken();
+    bool verifyCredentials();
     void handleTrackingEvent(const QJsonObject& event);
 };
 
