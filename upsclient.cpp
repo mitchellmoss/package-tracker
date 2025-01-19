@@ -35,9 +35,10 @@ void UPSClient::trackPackage(const QString& trackingNumber)
     url.setQuery(query);
 
     QNetworkRequest request(url);
-    request.setRawHeader("Authorization", ("Bearer " + token).toUtf8());
-    request.setRawHeader("transId", "TRACK" + QDateTime::currentDateTime().toString("yyyyMMddhhmmss").toUtf8());
-    request.setRawHeader("transactionSrc", "testing");
+    request.setHeader(QNetworkRequest::ContentTypeHeader, "application/json");
+    request.setRawHeader("Authorization", QString("Bearer %1").arg(token).toLatin1());
+    request.setRawHeader("transId", QString("TRACK%1").arg(QDateTime::currentDateTime().toString("yyyyMMddhhmmss")).toLatin1());
+    request.setRawHeader("transactionSrc", "PackageTracker");
 
     qDebug() << "Tracking package:" << trackingNumber;
     qDebug() << "Request URL:" << url.toString();
@@ -193,29 +194,30 @@ void UPSClient::handleTrackingEvent(const QJsonObject& event)
     emit trackingEventReceived(result);
 }
 
-QString UPSClient::getAuthToken()
+QString UPSClient::getAuthToken() 
 {
     QUrl url("https://wwwcie.ups.com/security/v1/oauth/token");
     QNetworkRequest request(url);
     request.setHeader(QNetworkRequest::ContentTypeHeader, "application/x-www-form-urlencoded");
 
-    // Create Basic Auth header
-    QString auth = QString("%1:%2").arg(clientId).arg(clientSecret);
-    QString authHeader = "Basic " + auth.toUtf8().toBase64();
-    request.setRawHeader("Authorization", authHeader.toUtf8());
+    // Create Basic Auth header with proper encoding
+    QString credentials = QString("%1:%2").arg(clientId, clientSecret);
+    QByteArray base64Credentials = credentials.toUtf8().toBase64();
+    QString authHeader = "Basic " + QString::fromLatin1(base64Credentials);
+    request.setRawHeader("Authorization", authHeader.toLatin1());
 
-    // Create form data
+    // Create form data with required parameters
     QUrlQuery params;
     params.addQueryItem("grant_type", "client_credentials");
     params.addQueryItem("scope", "trck");
-
-    QString postData = params.query(QUrl::FullyEncoded);
+    
+    QString postData = params.toString(QUrl::FullyEncoded);
 
     qDebug() << "Requesting UPS auth token with client ID:" << clientId;
     qDebug() << "Post data:" << postData;
 
-    // Send the request
-    QNetworkReply* reply = authManager->post(request, postData.toUtf8());
+    // Send the request with proper encoding
+    QNetworkReply* reply = authManager->post(request, postData.toLatin1());
     
     // Wait for reply with timeout
     QEventLoop loop;
