@@ -1,4 +1,5 @@
 #include "settingsdialog.h"
+#include "mainwindow.h"
 #include <QVBoxLayout>
 #include <QFormLayout>
 #include <QPushButton>
