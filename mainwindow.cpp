@@ -64,19 +64,37 @@ MainWindow::MainWindow(QWidget *parent)
     QToolButton* closeButton = new QToolButton(container);
     closeButton->setObjectName("closeButton");
     closeButton->setFixedSize(12, 12);
-    closeButton->setStyleSheet("background-color: #ff5f56; border-radius: 6px; border: none;");
+    closeButton->setStyleSheet(
+        "background-color: #ff5f56;"
+        "border-radius: 6px;"
+        "border: none;"
+        "margin: 0;"
+        "padding: 0;"
+    );
     
     // Minimize button
     QToolButton* minimizeButton = new QToolButton(container);
     minimizeButton->setObjectName("minimizeButton");
     minimizeButton->setFixedSize(12, 12);
-    minimizeButton->setStyleSheet("background-color: #ffbd2e; border-radius: 6px; border: none;");
+    minimizeButton->setStyleSheet(
+        "background-color: #ffbd2e;"
+        "border-radius: 6px;"
+        "border: none;"
+        "margin: 0;"
+        "padding: 0;"
+    );
     
     // Maximize button
     QToolButton* maximizeButton = new QToolButton(container);
     maximizeButton->setObjectName("maximizeButton");
     maximizeButton->setFixedSize(12, 12);
-    maximizeButton->setStyleSheet("background-color: #27c93f; border-radius: 6px; border: none;");
+    maximizeButton->setStyleSheet(
+        "background-color: #27c93f;"
+        "border-radius: 6px;"
+        "border: none;"
+        "margin: 0;"
+        "padding: 0;"
+    );
     
     // Add buttons to layout
     titleBarLayout->addWidget(closeButton);
@@ -154,6 +172,11 @@ MainWindow::MainWindow(QWidget *parent)
             border: none;
             padding: 0;
             margin: 0 4px;
+            border-radius: 6px;
+            min-width: 12px;
+            min-height: 12px;
+            max-width: 12px;
+            max-height: 12px;
         }
         #closeButton:hover { background-color: #e0443e; }
         #minimizeButton:hover { background-color: #e6a723; }
