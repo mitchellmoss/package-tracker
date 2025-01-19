@@ -194,6 +194,7 @@ QString UPSClient::getAuthToken()
     // Enable SSL
     QSslConfiguration sslConfig = request.sslConfiguration();
     sslConfig.setProtocol(QSsl::TlsV1_2);
+    sslConfig.setPeerVerifyMode(QSslSocket::VerifyPeer);
     request.setSslConfiguration(sslConfig);
 
     // Set additional required headers
@@ -207,21 +208,12 @@ QString UPSClient::getAuthToken()
     QTimer::singleShot(10000, &loop, &QEventLoop::quit);
     connect(reply, &QNetworkReply::finished, &loop, &QEventLoop::quit);
     
-    // Enable SSL verification
-    QSslConfiguration sslConfig = reply->sslConfiguration();
-    sslConfig.setPeerVerifyMode(QSslSocket::VerifyPeer);
-    reply->setSslConfiguration(sslConfig);
-    
     loop.exec();
     
-    // Check SSL errors
-    if (reply->sslHandshakeErrors().count() > 0) {
-        QString sslErrors;
-        for (const QSslError &error : reply->sslHandshakeErrors()) {
-            sslErrors += error.errorString() + "\n";
-        }
-        qDebug() << "SSL Errors:" << sslErrors;
-        emit trackingError("SSL Handshake Error: " + sslErrors);
+    // Check for SSL errors
+    if (reply->error() == QNetworkReply::SslHandshakeFailedError) {
+        qDebug() << "SSL Handshake Failed";
+        emit trackingError("SSL Handshake Failed - check your SSL configuration");
         return QString();
     }
 
@@ -255,10 +247,23 @@ QString UPSClient::getAuthToken()
     
     // Check if response is empty
     if (responseData.isEmpty()) {
+        int statusCode = reply->attribute(QNetworkRequest::HttpStatusCodeAttribute).toInt();
+        QString headers;
+        for (const auto& header : reply->rawHeaderPairs()) {
+            headers += header.first + ": " + header.second + "\n";
+        }
+        
         qDebug() << "Empty response from UPS API";
-        qDebug() << "HTTP Status:" << reply->attribute(QNetworkRequest::HttpStatusCodeAttribute).toInt();
-        qDebug() << "Headers:" << reply->rawHeaderPairs();
-        emit trackingError("Empty response from UPS API - check network connection and API endpoint");
+        qDebug() << "HTTP Status:" << statusCode;
+        qDebug() << "Headers:" << headers;
+        
+        if (statusCode == 401) {
+            emit trackingError("Authentication failed - check your UPS API credentials");
+        } else if (statusCode == 403) {
+            emit trackingError("Access denied - verify your UPS API permissions");
+        } else {
+            emit trackingError("Empty response from UPS API - check network connection and API endpoint");
+        }
         return QString();
     }
     
