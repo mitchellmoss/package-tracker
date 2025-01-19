@@ -26,6 +26,7 @@ void UPSClient::trackPackage(const QString& trackingNumber)
         return;
     }
 
+    // Construct tracking URL with proper parameters
     QUrl url("https://wwwcie.ups.com/api/track/v1/details/" + trackingNumber);
     QUrlQuery query;
     query.addQueryItem("locale", "en_US");
@@ -34,11 +35,12 @@ void UPSClient::trackPackage(const QString& trackingNumber)
     query.addQueryItem("returnPOD", "false");
     url.setQuery(query);
 
+    // Set up request with required headers
     QNetworkRequest request(url);
-    request.setHeader(QNetworkRequest::ContentTypeHeader, "application/json");
-    request.setRawHeader("Authorization", QByteArray("Bearer ") + token.toUtf8());
+    request.setRawHeader("Authorization", "Bearer " + token.toUtf8());
     request.setRawHeader("transId", QDateTime::currentDateTime().toString("TRACKyyyyMMddhhmmss").toUtf8());
     request.setRawHeader("transactionSrc", "testing");
+    request.setRawHeader("Accept", "application/json");
     
     qDebug() << "Tracking package:" << trackingNumber;
     qDebug() << "Request URL:" << url.toString();
@@ -201,18 +203,20 @@ QString UPSClient::getAuthToken()
     QUrl url("https://wwwcie.ups.com/security/v1/oauth/token");
     QNetworkRequest request(url);
     
-    // Set exact content type header
+    // Set required headers
     request.setHeader(QNetworkRequest::ContentTypeHeader, "application/x-www-form-urlencoded");
+    request.setRawHeader("x-merchant-id", clientId.toUtf8());
 
-    // Create properly encoded Basic Auth header
+    // Create Basic Auth header with proper encoding
     QString credentials = clientId + ":" + clientSecret;
     QByteArray base64Credentials = credentials.toUtf8().toBase64();
     request.setRawHeader("Authorization", "Basic " + base64Credentials);
 
     // Create properly formatted form data
-    QByteArray postData;
-    postData.append("grant_type=client_credentials");
-    postData.append("&scope=trck");
+    QUrlQuery query;
+    query.addQueryItem("grant_type", "client_credentials");
+    query.addQueryItem("scope", "trck");
+    QByteArray postData = query.toString(QUrl::FullyEncoded).toUtf8();
 
     qDebug() << "Requesting UPS auth token";
     qDebug() << "Client ID:" << clientId;
