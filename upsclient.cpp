@@ -219,7 +219,8 @@ QString UPSClient::getAuthToken()
     }
     
     // Check for SSL errors
-    QList<QSslError> sslErrors = reply->sslErrors();
+    // Check for SSL errors
+    const QList<QSslError>& sslErrors = reply->sslErrors();
     if (!sslErrors.isEmpty()) {
         qDebug() << "SSL Errors:";
         for (const QSslError& error : sslErrors) {
@@ -230,7 +231,6 @@ QString UPSClient::getAuthToken()
     }
 
     // Read response
-    QByteArray responseData = reply->readAll();
     qDebug() << "Response Headers:";
     for (const QByteArray& header : reply->rawHeaderList()) {
         qDebug() << " -" << header << ":" << reply->rawHeader(header);
@@ -248,11 +248,11 @@ QString UPSClient::getAuthToken()
     
     if (statusCode != 200) {
         qDebug() << "UPS Auth Error - Status Code:" << statusCode;
-        qDebug() << "Response:" << response;
+        qDebug() << "Response:" << responseData;
         
         // Try to parse error details
         QJsonParseError parseError;
-        QJsonDocument errorDoc = QJsonDocument::fromJson(response.toUtf8(), &parseError);
+        QJsonDocument errorDoc = QJsonDocument::fromJson(responseData, &parseError);
         if (parseError.error == QJsonParseError::NoError && errorDoc.isObject()) {
             QJsonObject errorObj = errorDoc.object();
             QString errorMessage;
@@ -272,7 +272,7 @@ QString UPSClient::getAuthToken()
             emit trackingError(QString("UPS Auth Error (%1): %2").arg(statusCode).arg(errorMessage));
         } else {
             // Check for HTML response which might indicate a different error
-            if (response.contains("<html") || response.contains("<!DOCTYPE")) {
+            if (responseData.contains("<html") || responseData.contains("<!DOCTYPE")) {
                 emit trackingError("UPS API returned HTML error page - check API endpoint URL");
             } else {
                 emit trackingError(QString("UPS Auth Error (%1): %2").arg(statusCode).arg(reply->errorString()));
