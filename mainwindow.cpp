@@ -85,12 +85,14 @@ MainWindow::MainWindow(QWidget *parent)
             border-radius: 8px;
             border: 1px solid rgba(0, 0, 0, 0.1);
             padding: 10px;
+            color: black;
         }
         QLineEdit {
             background-color: rgba(255, 255, 255, 0.9);
             border-radius: 5px;
             border: 1px solid rgba(0, 0, 0, 0.1);
             padding: 5px;
+            color: black;
         }
         QPushButton {
             background-color: rgba(255, 255, 255, 0.9);
