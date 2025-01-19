@@ -194,7 +194,7 @@ void UPSClient::handleTrackingEvent(const QJsonObject& event)
 
 QString UPSClient::getAuthToken()
 {
-    QUrl url("https://wwwcie.ups.com/security/v1/oauth/token");
+    QUrl url("https://onlinetools.ups.com/security/v1/oauth/token");
     QNetworkRequest request(url);
     request.setHeader(QNetworkRequest::ContentTypeHeader, "application/x-www-form-urlencoded");
 
