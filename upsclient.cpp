@@ -209,10 +209,14 @@ QString UPSClient::getAuthToken()
 
     // Check for network errors
     if (reply->error() != QNetworkReply::NoError) {
-        QString errorDetails = QString("Network Error: %1\nURL: %2\nHeaders: %3")
+        QString headers;
+        for (const auto& pair : reply->rawHeaderPairs()) {
+            headers += QString("%1: %2\n").arg(QString(pair.first)).arg(QString(pair.second));
+        }
+        QString errorDetails = QString("Network Error: %1\nURL: %2\nHeaders:\n%3")
             .arg(reply->errorString())
             .arg(url.toString())
-            .arg(reply->rawHeaderPairs());
+            .arg(headers);
         qDebug() << errorDetails;
         emit trackingError(errorDetails);
         return QString();
@@ -258,9 +262,13 @@ QString UPSClient::getAuthToken()
     qDebug() << "Status Code:" << statusCode;
     
     if (responseData.isEmpty()) {
-        QString errorDetails = QString("Empty response received\nStatus: %1\nHeaders: %2")
+        QString headers;
+        for (const auto& pair : reply->rawHeaderPairs()) {
+            headers += QString("%1: %2\n").arg(QString(pair.first)).arg(QString(pair.second));
+        }
+        QString errorDetails = QString("Empty response received\nStatus: %1\nHeaders:\n%2")
             .arg(statusCode)
-            .arg(reply->rawHeaderPairs());
+            .arg(headers);
         qDebug() << errorDetails;
         
         if (statusCode == 200) {
