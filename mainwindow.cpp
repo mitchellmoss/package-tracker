@@ -487,8 +487,6 @@ void MainWindow::showPackageDetails(const QString& trackingNumber)
         }
         
         detailsView->setHtml("<div style='padding: 8px;'>" + details + "</div>");
-        
-        detailsView->setText(details);
     } else {
         detailsView->setText("Loading details for: " + trackingNumber);
         
