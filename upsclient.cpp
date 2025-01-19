@@ -248,6 +248,7 @@ QString UPSClient::getAuthToken()
     QJsonDocument doc = QJsonDocument::fromJson(responseData, &parseError);
     
     if (parseError.error != QJsonParseError::NoError || !doc.isObject()) {
+        qDebug() << "Failed to parse UPS auth response:" << parseError.errorString();
         emit trackingError("Failed to parse UPS auth response");
         return QString();
     }
@@ -255,12 +256,13 @@ QString UPSClient::getAuthToken()
     QJsonObject obj = doc.object();
     if (!obj.contains("access_token")) {
         // Check for error details
-        if (obj.contains("response") && obj["response"].toObject().contains("errors")) {
-            QJsonArray errors = obj["response"].toObject()["errors"].toArray();
-            if (!errors.isEmpty()) {
-                QString error = errors[0].toObject()["message"].toString();
-                emit trackingError(error);
+        if (obj.contains("fault")) {
+            QJsonObject fault = obj["fault"].toObject();
+            QString error = fault["faultstring"].toString();
+            if (fault.contains("detail")) {
+                error += ": " + fault["detail"].toObject()["errorcode"].toString();
             }
+            emit trackingError(error);
         } else {
             emit trackingError("No access token in UPS response");
         }
@@ -268,6 +270,8 @@ QString UPSClient::getAuthToken()
     }
 
     QString token = obj["access_token"].toString();
+    int expiresIn = obj["expires_in"].toInt();
+    qDebug() << "Successfully retrieved UPS token, expires in:" << expiresIn << "seconds";
     qDebug() << "Successfully retrieved UPS token";
     return token;
 }
@@ -275,54 +279,83 @@ QString UPSClient::getAuthToken()
 
 void UPSClient::onRequestFinished(QNetworkReply* reply)
 {
-    if (reply->error() != QNetworkReply::NoError) {
+    QByteArray responseData = reply->readAll();
+    int statusCode = reply->attribute(QNetworkRequest::HttpStatusCodeAttribute).toInt();
+    
+    qDebug() << "Tracking response status:" << statusCode;
+    qDebug() << "Response headers:" << reply->rawHeaderPairs();
+    qDebug() << "Response body:" << responseData;
+
+    if (reply->error() != QNetworkReply::NoError || statusCode != 200) {
         QString errorMessage = reply->errorString();
-        QByteArray response = reply->readAll();
         
         // Try to parse error response
         QJsonParseError parseError;
-        QJsonDocument errorDoc = QJsonDocument::fromJson(response, &parseError);
+        QJsonDocument errorDoc = QJsonDocument::fromJson(responseData, &parseError);
         if (parseError.error == QJsonParseError::NoError && errorDoc.isObject()) {
             QJsonObject errorObj = errorDoc.object();
             if (errorObj.contains("response")) {
-                errorMessage = errorObj["response"].toObject()["errors"].toArray()[0].toObject()["message"].toString();
+                QJsonArray errors = errorObj["response"].toObject()["errors"].toArray();
+                if (!errors.isEmpty()) {
+                    errorMessage = errors[0].toObject()["message"].toString();
+                }
+            } else if (errorObj.contains("fault")) {
+                QJsonObject fault = errorObj["fault"].toObject();
+                errorMessage = fault["faultstring"].toString();
+                if (fault.contains("detail")) {
+                    errorMessage += ": " + fault["detail"].toObject()["errorcode"].toString();
+                }
             }
         }
         
         qDebug() << "UPS API Error:" << errorMessage;
-        qDebug() << "Response:" << response;
         emit trackingError(errorMessage);
         return;
     }
 
-    QByteArray responseData = reply->readAll();
-    QJsonDocument doc = QJsonDocument::fromJson(responseData);
-    if (!doc.isObject()) {
+    QJsonParseError parseError;
+    QJsonDocument doc = QJsonDocument::fromJson(responseData, &parseError);
+    if (parseError.error != QJsonParseError::NoError || !doc.isObject()) {
         emit trackingError("Invalid response format");
         return;
     }
 
     QJsonObject result;
-    QJsonObject trackResponse = doc.object()["trackResponse"].toObject();
-    if (!trackResponse.contains("shipment")) {
+    QJsonObject response = doc.object();
+    
+    if (!response.contains("trackResponse")) {
         emit trackingError("Invalid tracking response format");
         return;
     }
 
-    QJsonObject shipment = trackResponse["shipment"].toArray().first().toObject();
+    QJsonObject trackResponse = response["trackResponse"].toObject();
+    if (!trackResponse.contains("shipment")) {
+        emit trackingError("No shipment data in response");
+        return;
+    }
+
+    QJsonArray shipments = trackResponse["shipment"].toArray();
+    if (shipments.isEmpty()) {
+        emit trackingError("No shipment data available");
+        return;
+    }
+
+    QJsonObject shipment = shipments.first().toObject();
     
     result["trackingNumber"] = shipment["trackingNumber"].toString();
     result["status"] = shipment["currentStatus"].toObject()["description"].toString();
     
     QJsonArray events;
-    for (const QJsonValue& activity : shipment["activity"].toArray()) {
-        QJsonObject event = activity.toObject();
-        events.append(QJsonObject{
-            {"timestamp", event["date"].toString() + " " + event["time"].toString()},
-            {"description", event["status"].toObject()["description"].toString()},
-            {"location", event["location"].toObject()["address"].toObject()["city"].toString() + ", " + 
-                       event["location"].toObject()["address"].toObject()["stateProvince"].toString()}
-        });
+    if (shipment.contains("activity")) {
+        for (const QJsonValue& activity : shipment["activity"].toArray()) {
+            QJsonObject event = activity.toObject();
+            events.append(QJsonObject{
+                {"timestamp", event["date"].toString() + " " + event["time"].toString()},
+                {"description", event["status"].toObject()["description"].toString()},
+                {"location", event["location"].toObject()["address"].toObject()["city"].toString() + ", " + 
+                           event["location"].toObject()["address"].toObject()["stateProvince"].toString()}
+            });
+        }
     }
     result["events"] = events;
     
