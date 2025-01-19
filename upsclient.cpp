@@ -1,6 +1,7 @@
 #include "upsclient.h"
 #include <QJsonDocument>
 #include <QJsonObject>
+#include <QJsonArray>  // Add this include
 #include <QNetworkRequest>
 #include <QUrl>
 #include <QUrlQuery>
