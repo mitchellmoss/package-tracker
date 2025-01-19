@@ -25,18 +25,28 @@ void UPSClient::trackPackage(const QString& trackingNumber)
         return;
     }
 
-    QUrl url("https://onlinetools.ups.com/api/track/v1/details/" + trackingNumber);
+    QUrl url("https://onlinetools.ups.com/api/track/v1/details");
     QNetworkRequest request(url);
     request.setRawHeader("Authorization", ("Bearer " + token).toUtf8());
     request.setHeader(QNetworkRequest::ContentTypeHeader, "application/json");
     request.setRawHeader("transId", "TRACK" + QDateTime::currentDateTime().toString("yyyyMMddhhmmss").toUtf8());
     request.setRawHeader("transactionSrc", "PackageTracker");
 
+    // Create JSON payload
+    QJsonObject payload;
+    QJsonObject requestObj;
+    QJsonObject inquiryNumberObj;
+    
+    inquiryNumberObj["trackingNumber"] = trackingNumber;
+    requestObj["inquiryNumber"] = inquiryNumberObj;
+    payload["TrackRequest"] = requestObj;
+
     // Add debug output
     qDebug() << "Tracking package:" << trackingNumber;
     qDebug() << "Using token:" << token;
+    qDebug() << "Payload:" << QJsonDocument(payload).toJson();
 
-    QNetworkReply* reply = manager->get(request);
+    QNetworkReply* reply = manager->post(request, QJsonDocument(payload).toJson());
     
     connect(reply, &QNetworkReply::finished, this, [reply]() {
         if (reply->error() != QNetworkReply::NoError) {
@@ -51,6 +61,7 @@ QString UPSClient::getAuthToken()
     QUrl url("https://onlinetools.ups.com/security/v1/oauth/token");
     QNetworkRequest request(url);
     request.setHeader(QNetworkRequest::ContentTypeHeader, "application/x-www-form-urlencoded");
+    request.setRawHeader("x-merchant-id", "string"); // Required header
 
     // Create proper Basic Auth header
     QString auth = QString("%1:%2").arg(clientId).arg(clientSecret);
