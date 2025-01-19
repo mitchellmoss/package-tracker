@@ -144,10 +144,12 @@ MainWindow::MainWindow(QWidget *parent)
             border-radius: 8px;
             border: 1px solid rgba(0, 0, 0, 0.08);
             padding: 5px;
+            color: black;  /* Ensure text color is black */
         }
         QListWidget::item {
             padding: 8px;
             border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+            color: black;  /* Ensure text color is black */
         }
         QListWidget::item:hover {
             background-color: rgba(0, 0, 0, 0.03);
