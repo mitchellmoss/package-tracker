@@ -282,7 +282,6 @@ QString UPSClient::getAuthToken()
         return QString();
     }
 
-    QByteArray responseData = reply->readAll();
     qDebug() << "Raw UPS auth response:" << responseData;
     
     // Parse the response
