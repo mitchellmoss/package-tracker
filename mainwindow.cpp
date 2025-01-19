@@ -451,40 +451,66 @@ void MainWindow::showPackageDetails(const QString& trackingNumber)
     if (packageDetails.contains(trackingNumber)) {
         QJsonObject info = packageDetails[trackingNumber];
         QString carrier = info.contains("carrier") ? info["carrier"].toString() : "Unknown Carrier";
-        QString details = QString("<h2 style='margin: 0; padding: 0;'>%1</h2>"
-                                "<p style='color: #666; margin: 4px 0;'>%2</p>"
-                                "<div style='margin: 16px 0; padding: 12px; background: %3; border-radius: 6px;'>"
-                                "  <h3 style='margin: 0 0 8px 0;'>Current Status</h3>"
-                                "  <p style='margin: 0;'>%4</p>"
-                                "</div>")
-            .arg(trackingNumber)
-            .arg(carrier)
-            .arg(info["status"].toString().contains("Delivered") ? "#e8f5e9" : "#fff3e0")
-            .arg(info["status"].toString());
         
+        // Format the tracking number with carrier logo/icon
+        QString details = QString(
+            "<div style='background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);'>"
+            "  <div style='display: flex; align-items: center; margin-bottom: 16px;'>"
+            "    <div style='flex-grow: 1;'>"
+            "      <h2 style='margin: 0; color: #2c3e50; font-size: 24px;'>%1</h2>"
+            "      <p style='color: #7f8c8d; margin: 4px 0 0 0; font-size: 16px;'>%2</p>"
+            "    </div>"
+            "  </div>"
+        ).arg(trackingNumber).arg(carrier);
+
+        // Current Status Section
+        QString statusColor = info["status"].toString().contains("Delivered") ? "#27ae60" : "#f39c12";
+        details += QString(
+            "  <div style='background: #f8f9fa; padding: 16px; border-radius: 8px; margin-bottom: 20px;'>"
+            "    <h3 style='margin: 0 0 8px 0; color: #2c3e50; font-size: 18px;'>Current Status</h3>"
+            "    <p style='margin: 0; color: %1; font-weight: 500; font-size: 16px;'>%2</p>"
+            "  </div>"
+        ).arg(statusColor).arg(info["status"].toString());
+
+        // Estimated Delivery Section
         if (info.contains("estimatedDelivery")) {
-            details += QString("<div style='margin: 16px 0; padding: 12px; background: #e3f2fd; border-radius: 6px;'>"
-                             "  <h3 style='margin: 0 0 8px 0;'>Estimated Delivery</h3>"
-                             "  <p style='margin: 0;'>%1</p>"
-                             "</div>")
-                .arg(info["estimatedDelivery"].toString());
+            details += QString(
+                "  <div style='background: #f8f9fa; padding: 16px; border-radius: 8px; margin-bottom: 20px;'>"
+                "    <h3 style='margin: 0 0 8px 0; color: #2c3e50; font-size: 18px;'>Estimated Delivery</h3>"
+                "    <p style='margin: 0; color: #2c3e50; font-size: 16px;'>%1</p>"
+                "  </div>"
+            ).arg(info["estimatedDelivery"].toString());
         }
-        
+
+        // Tracking History Section
         if (info.contains("events")) {
-            details += "<h3 style='margin: 16px 0 8px 0;'>Tracking History</h3>";
+            details += "<h3 style='margin: 0 0 16px 0; color: #2c3e50; font-size: 18px;'>Tracking History</h3>";
+            details += "<div style='max-height: 400px; overflow-y: auto;'>";
+            
             QJsonArray events = info["events"].toArray();
             for (const QJsonValue& event : events) {
                 QJsonObject e = event.toObject();
-                details += QString("<div style='margin: 8px 0; padding: 12px; background: white; border-radius: 6px; border: 1px solid rgba(0, 0, 0, 0.08);'>"
-                                 "  <div style='color: #666; font-size: 0.9em;'>%1</div>"
-                                 "  <div style='margin: 4px 0; font-weight: 500;'>%2</div>"
-                                 "  <div style='color: #666; font-size: 0.9em;'>%3</div>"
-                                 "</div>")
-                    .arg(e["timestamp"].toString())
-                    .arg(e["description"].toString())
-                    .arg(e["location"].toString());
+                
+                // Parse and format the timestamp
+                QString timestamp = e["timestamp"].toString();
+                QDateTime dateTime = QDateTime::fromString(timestamp, "yyyyMMdd HHmmss");
+                QString formattedDate = dateTime.toString("MMM d, yyyy h:mm AP");
+                
+                details += QString(
+                    "<div style='background: white; padding: 16px; border-radius: 8px; margin-bottom: 12px; "
+                    "     border: 1px solid #e0e0e0;'>"
+                    "  <div style='color: #7f8c8d; font-size: 14px; margin-bottom: 4px;'>%1</div>"
+                    "  <div style='color: #2c3e50; font-weight: 500; font-size: 16px; margin-bottom: 4px;'>%2</div>"
+                    "  <div style='color: #7f8c8d; font-size: 14px;'>%3</div>"
+                    "</div>"
+                ).arg(formattedDate)
+                 .arg(e["description"].toString())
+                 .arg(e["location"].toString());
             }
+            details += "</div>";
         }
+        
+        details += "</div>"; // Close main container
         
         detailsView->setHtml("<div style='padding: 8px;'>" + details + "</div>");
     } else {
