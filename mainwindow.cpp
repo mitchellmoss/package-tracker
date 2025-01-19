@@ -214,6 +214,7 @@ void MainWindow::setupUI()
     setMenuBar(menuBar);
 
     // Add widgets to container
+    containerLayout->addLayout(inputLayout);
     containerLayout->addWidget(packageList);
     containerLayout->addWidget(detailsView);
     
