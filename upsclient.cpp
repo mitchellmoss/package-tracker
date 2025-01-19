@@ -198,12 +198,14 @@ QString UPSClient::getAuthToken()
     QNetworkRequest request(url);
     request.setHeader(QNetworkRequest::ContentTypeHeader, "application/x-www-form-urlencoded");
 
-    // Remove Basic Auth header
-    // Create form data with client ID and secret
+    // Create Basic Auth header
+    QString auth = QString("%1:%2").arg(clientId).arg(clientSecret);
+    QString authHeader = "Basic " + auth.toUtf8().toBase64();
+    request.setRawHeader("Authorization", authHeader.toUtf8());
+
+    // Create form data
     QUrlQuery params;
     params.addQueryItem("grant_type", "client_credentials");
-    params.addQueryItem("client_id", clientId);
-    params.addQueryItem("client_secret", clientSecret);
     params.addQueryItem("scope", "trck");
 
     QString postData = params.query(QUrl::FullyEncoded);
