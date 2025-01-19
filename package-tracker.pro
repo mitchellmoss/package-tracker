@@ -6,11 +6,13 @@ QT += core gui widgets network
 SOURCES += main.cpp \
            mainwindow.cpp \
            fedexclient.cpp \
-           upsclient.cpp
+           upsclient.cpp \
+           settingsdialog.cpp
 
 HEADERS += mainwindow.h \
            fedexclient.h \
-           upsclient.h
+           upsclient.h \
+           settingsdialog.h
 
 # Specify Homebrew's Qt installation path
 QMAKE_MACOSX_DEPLOYMENT_TARGET = 14.0
@@ -21,3 +23,6 @@ LIBS += -F/opt/homebrew/lib -framework QtCore -framework QtGui -framework QtWidg
 
 # Silence SDK version warning
 CONFIG += sdk_no_version_check
+
+# Add resources
+RESOURCES += resources.qrc

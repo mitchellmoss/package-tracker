@@ -7,8 +7,10 @@
 #include <QLineEdit>
 #include <QTextEdit>
 #include <QSettings>
+#include <QSystemTrayIcon>
 #include "fedexclient.h"
 #include "upsclient.h"
+#include "settingsdialog.h"
 
 class MainWindow : public QMainWindow
 {
@@ -40,6 +42,8 @@ private:
     FedExClient* fedexClient;
     UPSClient* upsClient;
     QMap<QString, QJsonObject> packageDetails;
+    QSystemTrayIcon* trayIcon;
+    SettingsDialog* settingsDialog;
 };
 
 #endif // MAINWINDOW_H

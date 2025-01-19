@@ -6,6 +6,10 @@
 #include <QJsonDocument>
 #include <QJsonArray>
 #include <QJsonObject>
+#include <QMenu>
+#include <QAction>
+#include <QIcon>
+#include <QTimer>
 
 MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent)
@@ -36,12 +40,31 @@ MainWindow::MainWindow(QWidget *parent)
     });
 
     setupUI();
+    setupTrayIcon();
     loadPackages();
+    
+    // Auto-refresh every 15 minutes
+    QTimer* refreshTimer = new QTimer(this);
+    connect(refreshTimer, &QTimer::timeout, this, &MainWindow::refreshPackages);
+    refreshTimer->start(15 * 60 * 1000);
 }
 
 MainWindow::~MainWindow()
 {
     savePackages();
+}
+
+void MainWindow::setupTrayIcon()
+{
+    trayIcon = new QSystemTrayIcon(this);
+    trayIcon->setIcon(QIcon(":/icons/package.png"));
+    
+    QMenu* trayMenu = new QMenu(this);
+    trayMenu->addAction("Show", this, &QWidget::show);
+    trayMenu->addAction("Quit", qApp, &QCoreApplication::quit);
+    
+    trayIcon->setContextMenu(trayMenu);
+    trayIcon->show();
 }
 
 void MainWindow::setupUI()
@@ -71,6 +94,15 @@ void MainWindow::setupUI()
     detailsView = new QTextEdit(this);
     detailsView->setReadOnly(true);
     
+    // Add menu bar
+    QMenuBar* menuBar = new QMenuBar(this);
+    QMenu* settingsMenu = menuBar->addMenu("Settings");
+    settingsMenu->addAction("API Credentials", this, [this]() {
+        settingsDialog = new SettingsDialog(this);
+        settingsDialog->exec();
+    });
+    setMenuBar(menuBar);
+
     // Add to main layout
     mainLayout->addLayout(inputLayout);
     mainLayout->addWidget(packageList);
