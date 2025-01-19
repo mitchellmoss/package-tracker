@@ -57,7 +57,7 @@ MainWindow::~MainWindow()
 void MainWindow::setupTrayIcon()
 {
     trayIcon = new QSystemTrayIcon(this);
-    trayIcon->setIcon(QIcon(":/icons/package.png"));
+    trayIcon->setIcon(QIcon::fromTheme("package"));
     
     QMenu* trayMenu = new QMenu(this);
     trayMenu->addAction("Show", this, &QWidget::show);
