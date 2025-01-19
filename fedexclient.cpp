@@ -79,5 +79,28 @@ void FedExClient::onRequestFinished(QNetworkReply* reply)
         return;
     }
 
-    emit trackingInfoReceived(doc.object());
+    QJsonObject result;
+    QJsonObject output = doc.object()["output"].toObject();
+    
+    result["trackingNumber"] = output["trackingNumberInfo"].toObject()["trackingNumber"].toString();
+    result["status"] = output["latestStatusDetail"].toObject()["description"].toString();
+    
+    QJsonArray events;
+    for (const QJsonValue& scan : output["scanEvents"].toArray()) {
+        QJsonObject event = scan.toObject();
+        events.append(QJsonObject{
+            {"timestamp", event["date"].toString() + " " + event["time"].toString()},
+            {"description", event["eventDescription"].toString()},
+            {"location", event["scanLocation"].toObject()["city"].toString() + ", " + 
+                        event["scanLocation"].toObject()["stateOrProvinceCode"].toString()}
+        });
+    }
+    result["events"] = events;
+    
+    if (output.contains("estimatedDeliveryTimeWindow")) {
+        QJsonObject window = output["estimatedDeliveryTimeWindow"].toObject();
+        result["estimatedDelivery"] = window["starts"].toString() + " - " + window["ends"].toString();
+    }
+    
+    emit trackingInfoReceived(result);
 }

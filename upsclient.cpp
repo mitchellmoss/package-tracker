@@ -71,5 +71,29 @@ void UPSClient::onRequestFinished(QNetworkReply* reply)
         return;
     }
 
-    emit trackingInfoReceived(doc.object());
+    QJsonObject result;
+    QJsonObject trackResponse = doc.object()["trackResponse"].toObject();
+    QJsonObject shipment = trackResponse["shipment"].toArray().first().toObject();
+    
+    result["trackingNumber"] = shipment["trackingNumber"].toString();
+    result["status"] = shipment["currentStatus"].toObject()["description"].toString();
+    
+    QJsonArray events;
+    for (const QJsonValue& activity : shipment["activity"].toArray()) {
+        QJsonObject event = activity.toObject();
+        events.append(QJsonObject{
+            {"timestamp", event["date"].toString() + " " + event["time"].toString()},
+            {"description", event["status"].toObject()["description"].toString()},
+            {"location", event["location"].toObject()["address"].toObject()["city"].toString() + ", " + 
+                       event["location"].toObject()["address"].toObject()["stateProvince"].toString()}
+        });
+    }
+    result["events"] = events;
+    
+    if (shipment.contains("deliveryDate")) {
+        QJsonObject delivery = shipment["deliveryDate"].toObject();
+        result["estimatedDelivery"] = delivery["date"].toString();
+    }
+    
+    emit trackingInfoReceived(result);
 }

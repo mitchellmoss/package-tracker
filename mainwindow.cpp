@@ -131,25 +131,39 @@ MainWindow::MainWindow(QWidget *parent)
     // Set window styles
     setStyleSheet(R"(
         #container {
-            background-color: rgba(245, 245, 245, 0.95);
-            border-radius: 10px;
-            border: 1px solid rgba(200, 200, 200, 0.5);
+            background-color: rgba(255, 255, 255, 0.98);
+            border-radius: 12px;
+            border: 1px solid rgba(0, 0, 0, 0.1);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
         }
         QMainWindow {
             background-color: transparent;
         }
         QListWidget {
-            background-color: rgba(255, 255, 255, 0.9);
+            background-color: white;
             border-radius: 8px;
-            border: 1px solid rgba(0, 0, 0, 0.1);
+            border: 1px solid rgba(0, 0, 0, 0.08);
             padding: 5px;
         }
-        QTextEdit {
-            background-color: rgba(255, 255, 255, 0.9);
-            border-radius: 8px;
-            border: 1px solid rgba(0, 0, 0, 0.1);
-            padding: 10px;
+        QListWidget::item {
+            padding: 8px;
+            border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+        }
+        QListWidget::item:hover {
+            background-color: rgba(0, 0, 0, 0.03);
+        }
+        QListWidget::item:selected {
+            background-color: rgba(0, 120, 212, 0.1);
             color: black;
+        }
+        QTextEdit {
+            background-color: white;
+            border-radius: 8px;
+            border: 1px solid rgba(0, 0, 0, 0.08);
+            padding: 12px;
+            color: #333;
+            font-size: 13px;
+            line-height: 1.4;
         }
         QLineEdit {
             background-color: rgba(255, 255, 255, 0.9);
@@ -393,26 +407,42 @@ void MainWindow::showPackageDetails(const QString& trackingNumber)
     if (packageDetails.contains(trackingNumber)) {
         QJsonObject info = packageDetails[trackingNumber];
         QString carrier = info.contains("carrier") ? info["carrier"].toString() : "Unknown Carrier";
-        QString details = QString("Carrier: %1\nTracking Number: %2\nStatus: %3\n")
-            .arg(carrier)
+        QString details = QString("<h2 style='margin: 0; padding: 0;'>%1</h2>"
+                                "<p style='color: #666; margin: 4px 0;'>%2</p>"
+                                "<div style='margin: 16px 0; padding: 12px; background: %3; border-radius: 6px;'>"
+                                "  <h3 style='margin: 0 0 8px 0;'>Current Status</h3>"
+                                "  <p style='margin: 0;'>%4</p>"
+                                "</div>")
             .arg(trackingNumber)
+            .arg(carrier)
+            .arg(info["status"].toString().contains("Delivered") ? "#e8f5e9" : "#fff3e0")
             .arg(info["status"].toString());
         
         if (info.contains("estimatedDelivery")) {
-            details += QString("Estimated Delivery: %1\n")
+            details += QString("<div style='margin: 16px 0; padding: 12px; background: #e3f2fd; border-radius: 6px;'>"
+                             "  <h3 style='margin: 0 0 8px 0;'>Estimated Delivery</h3>"
+                             "  <p style='margin: 0;'>%1</p>"
+                             "</div>")
                 .arg(info["estimatedDelivery"].toString());
         }
         
         if (info.contains("events")) {
-            details += "\nTracking History:\n";
+            details += "<h3 style='margin: 16px 0 8px 0;'>Tracking History</h3>";
             QJsonArray events = info["events"].toArray();
             for (const QJsonValue& event : events) {
                 QJsonObject e = event.toObject();
-                details += QString("- %1: %2\n")
+                details += QString("<div style='margin: 8px 0; padding: 12px; background: white; border-radius: 6px; border: 1px solid rgba(0, 0, 0, 0.08);'>"
+                                 "  <div style='color: #666; font-size: 0.9em;'>%1</div>"
+                                 "  <div style='margin: 4px 0; font-weight: 500;'>%2</div>"
+                                 "  <div style='color: #666; font-size: 0.9em;'>%3</div>"
+                                 "</div>")
                     .arg(e["timestamp"].toString())
-                    .arg(e["description"].toString());
+                    .arg(e["description"].toString())
+                    .arg(e["location"].toString());
             }
         }
+        
+        detailsView->setHtml("<div style='padding: 8px;'>" + details + "</div>");
         
         detailsView->setText(details);
     } else {
