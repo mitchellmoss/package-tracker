@@ -177,6 +177,7 @@ QString UPSClient::getAuthToken()
     QString auth = QString("%1:%2").arg(clientId).arg(clientSecret);
     QString authHeader = "Basic " + auth.toUtf8().toBase64();
     request.setRawHeader("Authorization", authHeader.toUtf8());
+    request.setRawHeader("x-merchant-id", clientId.toUtf8());
 
     // Create form data
     QUrlQuery params;
@@ -194,6 +195,10 @@ QString UPSClient::getAuthToken()
     QSslConfiguration sslConfig = request.sslConfiguration();
     sslConfig.setProtocol(QSsl::TlsV1_2);
     request.setSslConfiguration(sslConfig);
+
+    // Set additional required headers
+    request.setRawHeader("Accept", "application/json");
+    request.setRawHeader("Content-Length", QByteArray::number(postData.size()));
     
     QNetworkReply* reply = manager->post(request, postData);
     
@@ -218,7 +223,12 @@ QString UPSClient::getAuthToken()
             QString errorMessage = errorObj["response"].toObject()["errors"].toArray()[0].toObject()["message"].toString();
             emit trackingError(QString("UPS Auth Error (%1): %2").arg(statusCode).arg(errorMessage));
         } else {
-            emit trackingError(QString("UPS Auth Error (%1): %2").arg(statusCode).arg(reply->errorString()));
+            // Check for HTML response which might indicate a different error
+            if (response.contains("<html") || response.contains("<!DOCTYPE")) {
+                emit trackingError("UPS API returned HTML error page - check API endpoint URL");
+            } else {
+                emit trackingError(QString("UPS Auth Error (%1): %2").arg(statusCode).arg(reply->errorString()));
+            }
         }
         return QString();
     }
@@ -263,6 +273,16 @@ QString UPSClient::getAuthToken()
                     return QString();
                 }
             }
+        }
+        
+        // Check for alternative error format
+        if (obj.contains("error")) {
+            QString errorMessage = obj["error"].toString();
+            if (obj.contains("error_description")) {
+                errorMessage += ": " + obj["error_description"].toString();
+            }
+            emit trackingError(errorMessage);
+            return QString();
         }
         
         qDebug() << "No access token in response:" << obj;
