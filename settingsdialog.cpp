@@ -29,6 +29,18 @@ SettingsDialog::SettingsDialog(QWidget *parent)
         settings.setValue("fedexSecret", fedexSecretInput->text());
         settings.setValue("upsId", upsIdInput->text());
         settings.setValue("upsSecret", upsSecretInput->text());
+        
+        // Update clients with new credentials
+        MainWindow* mainWindow = qobject_cast<MainWindow*>(parent());
+        if (mainWindow) {
+            mainWindow->updateApiClients(
+                fedexKeyInput->text(),
+                fedexSecretInput->text(),
+                upsIdInput->text(),
+                upsSecretInput->text()
+            );
+        }
+        
         accept();
     });
     

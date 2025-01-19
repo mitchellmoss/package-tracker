@@ -152,7 +152,7 @@ QString UPSClient::getAuthToken()
     QUrl url("https://onlinetools.ups.com/security/v1/oauth/token");
     QNetworkRequest request(url);
     request.setHeader(QNetworkRequest::ContentTypeHeader, "application/x-www-form-urlencoded");
-    request.setRawHeader("x-merchant-id", "string"); // Required header
+    request.setRawHeader("x-merchant-id", clientId.toUtf8()); // Use client ID as merchant ID
 
     // Create proper Basic Auth header
     QString auth = QString("%1:%2").arg(clientId).arg(clientSecret);

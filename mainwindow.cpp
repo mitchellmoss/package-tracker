@@ -210,9 +210,18 @@ MainWindow::MainWindow(QWidget *parent)
             border-radius: 4px;
         }
     )");
-    // Initialize API clients with your credentials
-    fedexClient = new FedExClient("YOUR_FEDEX_API_KEY", "YOUR_FEDEX_API_SECRET", this);
-    upsClient = new UPSClient("YOUR_UPS_CLIENT_ID", "YOUR_UPS_CLIENT_SECRET", this);
+    // Initialize API clients with saved credentials
+    QSettings settings;
+    fedexClient = new FedExClient(
+        settings.value("fedexKey").toString(),
+        settings.value("fedexSecret").toString(),
+        this
+    );
+    upsClient = new UPSClient(
+        settings.value("upsId").toString(),
+        settings.value("upsSecret").toString(),
+        this
+    );
     // Connect FedEx signals
     connect(fedexClient, &FedExClient::trackingInfoReceived, this, [this](const QJsonObject& info) {
         QString trackingNumber = info["trackingNumber"].toString();
@@ -480,6 +489,37 @@ void MainWindow::loadPackages()
 {
     QStringList packages = settings.value("trackingNumbers").toStringList();
     packageList->addItems(packages);
+}
+
+void MainWindow::updateApiClients(const QString& fedexKey, const QString& fedexSecret,
+                                 const QString& upsId, const QString& upsSecret)
+{
+    fedexClient->deleteLater();
+    upsClient->deleteLater();
+    
+    fedexClient = new FedExClient(fedexKey, fedexSecret, this);
+    upsClient = new UPSClient(upsId, upsSecret, this);
+    
+    // Reconnect signals
+    connect(fedexClient, &FedExClient::trackingInfoReceived, this, [this](const QJsonObject& info) {
+        QString trackingNumber = info["trackingNumber"].toString();
+        packageDetails[trackingNumber] = info;
+        packageDetails[trackingNumber]["carrier"] = "FedEx";
+        this->showPackageDetails(trackingNumber);
+    });
+    connect(fedexClient, &FedExClient::trackingError, this, [this](const QString& error) {
+        QMessageBox::warning(this, "FedEx Tracking Error", error);
+    });
+
+    connect(upsClient, &UPSClient::trackingInfoReceived, this, [this](const QJsonObject& info) {
+        QString trackingNumber = info["trackingNumber"].toString();
+        packageDetails[trackingNumber] = info;
+        packageDetails[trackingNumber]["carrier"] = "UPS";
+        this->showPackageDetails(trackingNumber);
+    });
+    connect(upsClient, &UPSClient::trackingError, this, [this](const QString& error) {
+        QMessageBox::warning(this, "UPS Tracking Error", error);
+    });
 }
 
 void MainWindow::savePackages()
