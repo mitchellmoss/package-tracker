@@ -230,20 +230,20 @@ QString UPSClient::getAuthToken()
         QJsonDocument errorDoc = QJsonDocument::fromJson(response.toUtf8(), &parseError);
         if (parseError.error == QJsonParseError::NoError && errorDoc.isObject()) {
             QJsonObject errorObj = errorDoc.object();
-            QString errorMessage = errorObj["response"].toObject()["errors"].toArray()[0].toObject()["message"].toString();
-            emit trackingError(QString("UPS Auth Error (%1): %2").arg(statusCode).arg(errorMessage));
-        } else {
-            emit trackingError(QString("UPS Auth Error (%1): %2").arg(statusCode).arg(response));
-        }
-        return QString();
-    }
-        
-        // Try to parse error details
-        QJsonParseError parseError;
-        QJsonDocument errorDoc = QJsonDocument::fromJson(response.toUtf8(), &parseError);
-        if (parseError.error == QJsonParseError::NoError && errorDoc.isObject()) {
-            QJsonObject errorObj = errorDoc.object();
-            QString errorMessage = errorObj["response"].toObject()["errors"].toArray()[0].toObject()["message"].toString();
+            QString errorMessage;
+            
+            // Check for different error formats
+            if (errorObj.contains("response")) {
+                errorMessage = errorObj["response"].toObject()["errors"].toArray()[0].toObject()["message"].toString();
+            } else if (errorObj.contains("error")) {
+                errorMessage = errorObj["error"].toString();
+                if (errorObj.contains("error_description")) {
+                    errorMessage += ": " + errorObj["error_description"].toString();
+                }
+            } else {
+                errorMessage = "Unknown error format";
+            }
+            
             emit trackingError(QString("UPS Auth Error (%1): %2").arg(statusCode).arg(errorMessage));
         } else {
             // Check for HTML response which might indicate a different error
