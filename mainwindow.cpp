@@ -55,16 +55,30 @@ MainWindow::MainWindow(QWidget *parent)
     FrostedGlassEffect* effect = new FrostedGlassEffect(this);
     setGraphicsEffect(effect);
     
-    // Set window background color with transparency and clear boundaries
-    setStyleSheet(R"(
-        QMainWindow {
+    // Create a container widget for the frosted effect
+    QWidget* container = new QWidget(this);
+    container->setObjectName("container");
+    container->setStyleSheet(R"(
+        #container {
             background-color: rgba(245, 245, 245, 0.95);
             border-radius: 10px;
             border: 1px solid rgba(200, 200, 200, 0.5);
         }
-        QWidget#centralWidget {
+    )");
+    
+    // Apply frosted glass effect to container
+    FrostedGlassEffect* effect = new FrostedGlassEffect(container);
+    container->setGraphicsEffect(effect);
+    
+    // Main layout for container
+    QVBoxLayout* containerLayout = new QVBoxLayout(container);
+    containerLayout->setContentsMargins(15, 15, 15, 15);
+    containerLayout->setSpacing(10);
+    
+    // Set window background to transparent
+    setStyleSheet(R"(
+        QMainWindow {
             background-color: transparent;
-            padding: 15px;
         }
         QListWidget {
             background-color: rgba(255, 255, 255, 0.9);
@@ -201,28 +215,35 @@ void MainWindow::setupUI()
     mainLayout->addWidget(packageList);
     mainLayout->addWidget(detailsView);
     
-    // Set object name for central widget for styling
-    centralWidget->setObjectName("centralWidget");
+    // Add widgets to container
+    containerLayout->addLayout(inputLayout);
+    containerLayout->addWidget(packageList);
+    containerLayout->addWidget(detailsView);
     
-    // Add drop shadow with more subtle effect
+    // Create central widget with layout
+    QWidget* centralWidget = new QWidget(this);
+    QVBoxLayout* centralLayout = new QVBoxLayout(centralWidget);
+    centralLayout->setContentsMargins(0, 0, 0, 0);
+    centralLayout->addWidget(container);
+    
+    // Add drop shadow to container
     QGraphicsDropShadowEffect* shadow = new QGraphicsDropShadowEffect;
-    shadow->setBlurRadius(15);
-    shadow->setColor(QColor(0, 0, 0, 80));
-    shadow->setOffset(2, 2);
-    centralWidget->setGraphicsEffect(shadow);
-    
-    // Add padding and spacing
-    mainLayout->setSpacing(10);
-    mainLayout->setContentsMargins(10, 10, 10, 10);
+    shadow->setBlurRadius(20);
+    shadow->setColor(QColor(0, 0, 0, 60));
+    shadow->setOffset(4, 4);
+    container->setGraphicsEffect(shadow);
     
     setCentralWidget(centralWidget);
     
     // Adjust window size and position
-    resize(800, 600);
+    resize(900, 700);
     QRect screenGeometry = QGuiApplication::primaryScreen()->geometry();
     int x = (screenGeometry.width() - width()) / 2;
     int y = (screenGeometry.height() - height()) / 2;
     move(x, y);
+    
+    // Set minimum size
+    setMinimumSize(600, 400);
     
     // Connect signals
     connect(addButton, &QPushButton::clicked, this, &MainWindow::addPackage);
