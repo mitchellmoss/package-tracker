@@ -209,7 +209,6 @@ QString UPSClient::getAuthToken()
     QString postData = params.query(QUrl::FullyEncoded);
 
     qDebug() << "Requesting UPS auth token with client ID:" << clientId;
-    qDebug() << "Auth header:" << authHeader;
     qDebug() << "Post data:" << postData;
 
     // Send the request
