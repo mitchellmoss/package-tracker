@@ -172,13 +172,11 @@ QString UPSClient::getAuthToken()
     QUrl url("https://onlinetools.ups.com/security/v1/oauth/token");
     QNetworkRequest request(url);
     request.setHeader(QNetworkRequest::ContentTypeHeader, "application/x-www-form-urlencoded");
-    request.setRawHeader("x-merchant-id", clientId.toUtf8()); // Use client ID as merchant ID
 
     // Create proper Basic Auth header
     QString auth = QString("%1:%2").arg(clientId).arg(clientSecret);
     QString authHeader = "Basic " + auth.toUtf8().toBase64();
     request.setRawHeader("Authorization", authHeader.toUtf8());
-    request.setRawHeader("x-merchant-id", clientId.toUtf8());
 
     // Create form data
     QUrlQuery params;
@@ -191,40 +189,68 @@ QString UPSClient::getAuthToken()
     QByteArray postData = params.toString(QUrl::FullyEncoded).toUtf8();
     qDebug() << "UPS Auth Request URL:" << url;
     qDebug() << "UPS Auth Request Data:" << postData;
+
+    // Enable SSL
+    QSslConfiguration sslConfig = request.sslConfiguration();
+    sslConfig.setProtocol(QSsl::TlsV1_2);
+    request.setSslConfiguration(sslConfig);
     
     QNetworkReply* reply = manager->post(request, postData);
     
     // Wait for reply with timeout
     QEventLoop loop;
-    QTimer::singleShot(10000, &loop, &QEventLoop::quit); // Increased timeout
+    QTimer::singleShot(10000, &loop, &QEventLoop::quit);
     connect(reply, &QNetworkReply::finished, &loop, &QEventLoop::quit);
     loop.exec();
 
     if (reply->error() != QNetworkReply::NoError) {
         QString response = reply->readAll();
+        int statusCode = reply->attribute(QNetworkRequest::HttpStatusCodeAttribute).toInt();
         qDebug() << "UPS Auth Error:" << reply->errorString();
-        qDebug() << "Status Code:" << reply->attribute(QNetworkRequest::HttpStatusCodeAttribute).toInt();
+        qDebug() << "Status Code:" << statusCode;
         qDebug() << "Response:" << response;
-        emit trackingError(QString("UPS Auth Error: %1\nStatus: %2\nResponse: %3")
-                          .arg(reply->errorString())
-                          .arg(reply->attribute(QNetworkRequest::HttpStatusCodeAttribute).toInt())
-                          .arg(response));
+        
+        // Try to parse error details
+        QJsonParseError parseError;
+        QJsonDocument errorDoc = QJsonDocument::fromJson(response.toUtf8(), &parseError);
+        if (parseError.error == QJsonParseError::NoError && errorDoc.isObject()) {
+            QJsonObject errorObj = errorDoc.object();
+            QString errorMessage = errorObj["response"].toObject()["errors"].toArray()[0].toObject()["message"].toString();
+            emit trackingError(QString("UPS Auth Error (%1): %2").arg(statusCode).arg(errorMessage));
+        } else {
+            emit trackingError(QString("UPS Auth Error (%1): %2").arg(statusCode).arg(reply->errorString()));
+        }
         return QString();
     }
 
-    QJsonDocument doc = QJsonDocument::fromJson(reply->readAll());
+    QByteArray responseData = reply->readAll();
+    qDebug() << "Raw UPS auth response:" << responseData;
+    
+    QJsonParseError parseError;
+    QJsonDocument doc = QJsonDocument::fromJson(responseData, &parseError);
+    
+    if (parseError.error != QJsonParseError::NoError) {
+        qDebug() << "JSON parse error:" << parseError.errorString();
+        emit trackingError("Failed to parse UPS auth response");
+        return QString();
+    }
+    
     if (!doc.isObject()) {
-        qDebug() << "Invalid JSON response";
+        qDebug() << "Invalid JSON response format";
+        emit trackingError("Invalid UPS auth response format");
         return QString();
     }
-
+    
     QJsonObject obj = doc.object();
     if (!obj.contains("access_token")) {
         qDebug() << "No access token in response:" << obj;
+        emit trackingError("No access token in UPS response");
         return QString();
     }
 
-    return obj["access_token"].toString();
+    QString token = obj["access_token"].toString();
+    qDebug() << "Successfully retrieved UPS token";
+    return token;
 }
 
 void UPSClient::onRequestFinished(QNetworkReply* reply)
