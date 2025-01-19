@@ -200,18 +200,21 @@ QString UPSClient::getAuthToken()
     QNetworkRequest request(url);
     
     // Set exact content type header
-    request.setRawHeader("Content-Type", "application/x-www-form-urlencoded");
+    request.setHeader(QNetworkRequest::ContentTypeHeader, "application/x-www-form-urlencoded");
 
     // Create properly encoded Basic Auth header
-    QByteArray credentials = QString("%1:%2").arg(clientId, clientSecret).toUtf8();
-    QByteArray authHeader = "Basic " + credentials.toBase64();
-    request.setRawHeader("Authorization", authHeader);
+    QString credentials = clientId + ":" + clientSecret;
+    QByteArray base64Credentials = credentials.toUtf8().toBase64();
+    request.setRawHeader("Authorization", "Basic " + base64Credentials);
 
     // Create properly formatted form data
-    QByteArray postData = "grant_type=client_credentials&scope=trck";
+    QByteArray postData;
+    postData.append("grant_type=client_credentials");
+    postData.append("&scope=trck");
 
     qDebug() << "Requesting UPS auth token";
-    qDebug() << "Auth header:" << authHeader;
+    qDebug() << "Client ID:" << clientId;
+    qDebug() << "Auth header:" << "Basic " + base64Credentials;
     qDebug() << "Post data:" << postData;
 
     // Send the request
