@@ -114,7 +114,7 @@ void MainWindow::setupUI()
     connect(addButton, &QPushButton::clicked, this, &MainWindow::addPackage);
     connect(removeButton, &QPushButton::clicked, this, &MainWindow::removePackage);
     connect(refreshButton, &QPushButton::clicked, this, &MainWindow::refreshPackages);
-    connect(packageList, &QListWidget::itemClicked, this, &MainWindow::showPackageDetails);
+    connect(packageList, &QListWidget::itemClicked, this, QOverload<QListWidgetItem*>::of(&MainWindow::showPackageDetails));
 }
 
 void MainWindow::addPackage()
