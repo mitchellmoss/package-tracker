@@ -4,6 +4,8 @@
 #include <QNetworkRequest>
 #include <QUrl>
 #include <QUrlQuery>
+#include <QEventLoop>
+#include <QTimer>
 
 UPSClient::UPSClient(const QString& clientId, const QString& clientSecret, QObject *parent)
     : QObject(parent), clientId(clientId), clientSecret(clientSecret)
