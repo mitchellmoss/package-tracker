@@ -349,15 +349,16 @@ void MainWindow::setupUI()
             QString fedexSecret = dialog->fedexSecretInput->text();
             QString upsId = dialog->upsIdInput->text();
             QString upsSecret = dialog->upsSecretInput->text();
+            QString upsAccessKey = dialog->upsAccessKeyInput->text();
         
             if (fedexKey.isEmpty() || fedexSecret.isEmpty() || 
-                upsId.isEmpty() || upsSecret.isEmpty()) {
+                upsId.isEmpty() || upsSecret.isEmpty() || upsAccessKey.isEmpty()) {
                 QMessageBox::warning(this, "Invalid Credentials", 
                     "All API credentials must be filled out");
                 return;
             }
         
-            updateApiClients(fedexKey, fedexSecret, upsId, upsSecret);
+            updateApiClients(fedexKey, fedexSecret, upsId, upsSecret, upsAccessKey);
         });
         dialog->exec();
     });
