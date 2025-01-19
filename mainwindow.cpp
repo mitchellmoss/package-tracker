@@ -98,9 +98,11 @@ MainWindow::MainWindow(QWidget *parent)
             border: 1px solid rgba(0, 0, 0, 0.1);
             padding: 5px 10px;
             min-width: 60px;
+            color: black;
         }
         QPushButton:hover {
             background-color: rgba(240, 240, 240, 1.0);
+            color: black;
         }
         QMenuBar {
             background-color: transparent;
