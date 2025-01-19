@@ -218,19 +218,19 @@ QString UPSClient::getAuthToken()
         return QString();
     }
     
-    // Read response data first
+    // Read response data
     QByteArray responseData = reply->readAll();
     
-    // Check for SSL errors by connecting to the sslErrors signal
-    connect(reply, &QNetworkReply::sslErrors, this, [this](const QList<QSslError> &errors) {
-        if (!errors.isEmpty()) {
-            qDebug() << "SSL Errors:";
-            for (const QSslError& error : errors) {
-                qDebug() << " -" << error.errorString();
-            }
-            emit trackingError("SSL Error: " + errors.first().errorString());
+    // Check for SSL errors
+    QList<QSslError> sslErrors = reply->sslErrors();
+    if (!sslErrors.isEmpty()) {
+        qDebug() << "SSL Errors:";
+        for (const QSslError& error : sslErrors) {
+            qDebug() << " -" << error.errorString();
         }
-    });
+        emit trackingError("SSL Error: " + sslErrors.first().errorString());
+        return QString();
+    }
 
     qDebug() << "Response Headers:";
     for (const QByteArray& header : reply->rawHeaderList()) {
@@ -240,10 +240,15 @@ QString UPSClient::getAuthToken()
     // Check response status code
     int statusCode = reply->attribute(QNetworkRequest::HttpStatusCodeAttribute).toInt();
     qDebug() << "Status Code:" << statusCode;
+    qDebug() << "Response Data:" << responseData;
     
     if (responseData.isEmpty()) {
         qDebug() << "Empty response received";
-        emit trackingError("Empty response from UPS API");
+        if (statusCode == 200) {
+            emit trackingError("Received empty response with 200 status - check API credentials");
+        } else {
+            emit trackingError("Empty response from UPS API");
+        }
         return QString();
     }
     
