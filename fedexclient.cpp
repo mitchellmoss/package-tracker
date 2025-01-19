@@ -45,10 +45,14 @@ QString FedExClient::getAuthToken()
     QNetworkRequest request(url);
     request.setHeader(QNetworkRequest::ContentTypeHeader, "application/x-www-form-urlencoded");
 
+    // Create proper Basic Auth header
+    QString auth = QString("%1:%2").arg(apiKey).arg(apiSecret);
+    QString authHeader = "Basic " + auth.toUtf8().toBase64();
+    request.setRawHeader("Authorization", authHeader.toUtf8());
+
+    // Create form data
     QUrlQuery params;
     params.addQueryItem("grant_type", "client_credentials");
-    params.addQueryItem("client_id", apiKey);
-    params.addQueryItem("client_secret", apiSecret);
 
     QNetworkReply* reply = manager->post(request, params.toString(QUrl::FullyEncoded).toUtf8());
     
@@ -59,10 +63,19 @@ QString FedExClient::getAuthToken()
     loop.exec();
 
     if (reply->error() != QNetworkReply::NoError) {
+        qDebug() << "FedEx Auth Error:" << reply->errorString();
+        qDebug() << "Response:" << reply->readAll();
+        emit trackingError("Failed to authenticate with FedEx");
         return QString();
     }
 
     QJsonDocument doc = QJsonDocument::fromJson(reply->readAll());
+    if (!doc.isObject() || !doc.object().contains("access_token")) {
+        qDebug() << "Invalid FedEx auth response:" << doc;
+        emit trackingError("Invalid authentication response from FedEx");
+        return QString();
+    }
+
     return doc.object()["access_token"].toString();
 }
 
@@ -80,13 +93,28 @@ void FedExClient::onRequestFinished(QNetworkReply* reply)
     }
 
     QJsonObject result;
-    QJsonObject output = doc.object()["output"].toObject();
+    QJsonObject output = doc.object();
+    if (!output.contains("output")) {
+        emit trackingError("Invalid response format - missing output");
+        return;
+    }
     
-    result["trackingNumber"] = output["trackingNumberInfo"].toObject()["trackingNumber"].toString();
-    result["status"] = output["latestStatusDetail"].toObject()["description"].toString();
+    QJsonObject trackingInfo = output["output"].toObject();
+    if (!trackingInfo.contains("trackingNumberInfo")) {
+        emit trackingError("Invalid response format - missing tracking info");
+        return;
+    }
+    
+    result["trackingNumber"] = trackingInfo["trackingNumberInfo"].toObject()["trackingNumber"].toString();
+    result["status"] = trackingInfo["latestStatusDetail"].toObject()["description"].toString();
     
     QJsonArray events;
-    for (const QJsonValue& scan : output["scanEvents"].toArray()) {
+    if (!trackingInfo.contains("scanEvents")) {
+        emit trackingError("No scan events in response");
+        return;
+    }
+    
+    for (const QJsonValue& scan : trackingInfo["scanEvents"].toArray()) {
         QJsonObject event = scan.toObject();
         events.append(QJsonObject{
             {"timestamp", event["date"].toString() + " " + event["time"].toString()},

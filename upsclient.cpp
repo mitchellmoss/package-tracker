@@ -87,7 +87,27 @@ void UPSClient::subscribeToTracking(const QString& trackingNumber, const QString
     qDebug() << "Subscribing to tracking:" << trackingNumber;
     qDebug() << "Callback URL:" << callbackUrl;
 
+    qDebug() << "Tracking FedEx package:" << trackingNumber;
+    qDebug() << "Using token:" << token;
+
     QNetworkReply* reply = manager->post(request, QJsonDocument(payload).toJson());
+    
+    connect(reply, &QNetworkReply::finished, this, [this, reply]() {
+        if (reply->error() != QNetworkReply::NoError) {
+            qDebug() << "FedEx Tracking Error:" << reply->errorString();
+            qDebug() << "Response:" << reply->readAll();
+            emit trackingError(reply->errorString());
+            return;
+        }
+
+        QJsonDocument doc = QJsonDocument::fromJson(reply->readAll());
+        if (!doc.isObject()) {
+            emit trackingError("Invalid response format");
+            return;
+        }
+
+        emit trackingInfoReceived(doc.object());
+    });
     
     connect(reply, &QNetworkReply::finished, this, [this, reply]() {
         if (reply->error() != QNetworkReply::NoError) {
@@ -158,6 +178,7 @@ QString UPSClient::getAuthToken()
     QString auth = QString("%1:%2").arg(clientId).arg(clientSecret);
     QString authHeader = "Basic " + auth.toUtf8().toBase64();
     request.setRawHeader("Authorization", authHeader.toUtf8());
+    request.setRawHeader("x-merchant-id", clientId.toUtf8());
 
     // Create form data
     QUrlQuery params;
