@@ -1,9 +1,12 @@
 #include "fedexclient.h"
 #include <QJsonDocument>
 #include <QJsonObject>
+#include <QJsonArray>
 #include <QNetworkRequest>
 #include <QUrl>
 #include <QUrlQuery>
+#include <QEventLoop>
+#include <QTimer>
 
 FedExClient::FedExClient(const QString& apiKey, const QString& apiSecret, QObject *parent)
     : QObject(parent), apiKey(apiKey), apiSecret(apiSecret)
