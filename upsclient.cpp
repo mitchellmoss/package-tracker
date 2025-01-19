@@ -26,7 +26,7 @@ void UPSClient::trackPackage(const QString& trackingNumber)
         return;
     }
 
-    QUrl url("https://wwwcie.ups.com/api/track/v1/details/" + trackingNumber);
+    QUrl url("https://wwwcie.ups.com/track/v1/details/" + trackingNumber);
     QUrlQuery query;
     query.addQueryItem("locale", "en_US");
     query.addQueryItem("returnSignature", "false");
