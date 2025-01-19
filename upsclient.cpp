@@ -221,6 +221,10 @@ QString UPSClient::getAuthToken()
     // Read response data
     QByteArray responseData = reply->readAll();
     
+    // Log raw response including non-printable characters
+    qDebug() << "Raw response bytes:" << responseData.toHex();
+    qDebug() << "Raw response string:" << responseData;
+    
     // Check for SSL errors by connecting to the sslErrors signal
     QList<QSslError> sslErrors;
     connect(reply, &QNetworkReply::sslErrors, this, [this, &sslErrors](const QList<QSslError> &errors) {
@@ -242,7 +246,6 @@ QString UPSClient::getAuthToken()
     // Check response status code
     int statusCode = reply->attribute(QNetworkRequest::HttpStatusCodeAttribute).toInt();
     qDebug() << "Status Code:" << statusCode;
-    qDebug() << "Response Data:" << responseData;
     
     if (responseData.isEmpty()) {
         qDebug() << "Empty response received";
