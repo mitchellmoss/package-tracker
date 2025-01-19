@@ -203,8 +203,8 @@ QString UPSClient::getAuthToken()
     QString authHeader = "Basic " + auth.toUtf8().toBase64();
     request.setRawHeader("Authorization", authHeader.toUtf8());
 
-    // Create form data
-    QString postData = "grant_type=client_credentials";
+    // Create form data with scope parameter
+    QString postData = "grant_type=client_credentials&scope=trck";
 
     qDebug() << "Requesting UPS auth token with client ID:" << clientId;
     qDebug() << "Auth header:" << authHeader;
