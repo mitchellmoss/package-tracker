@@ -51,20 +51,9 @@ MainWindow::MainWindow(QWidget *parent)
     setAttribute(Qt::WA_TranslucentBackground);
     setWindowFlags(windowFlags() | Qt::FramelessWindowHint);
     
-    // Create frosted glass effect
-    FrostedGlassEffect* effect = new FrostedGlassEffect(this);
-    setGraphicsEffect(effect);
-    
     // Create a container widget for the frosted effect
     QWidget* container = new QWidget(this);
     container->setObjectName("container");
-    container->setStyleSheet(R"(
-        #container {
-            background-color: rgba(245, 245, 245, 0.95);
-            border-radius: 10px;
-            border: 1px solid rgba(200, 200, 200, 0.5);
-        }
-    )");
     
     // Apply frosted glass effect to container
     FrostedGlassEffect* effect = new FrostedGlassEffect(container);
@@ -75,8 +64,13 @@ MainWindow::MainWindow(QWidget *parent)
     containerLayout->setContentsMargins(15, 15, 15, 15);
     containerLayout->setSpacing(10);
     
-    // Set window background to transparent
+    // Set window styles
     setStyleSheet(R"(
+        #container {
+            background-color: rgba(245, 245, 245, 0.95);
+            border-radius: 10px;
+            border: 1px solid rgba(200, 200, 200, 0.5);
+        }
         QMainWindow {
             background-color: transparent;
         }
@@ -220,12 +214,6 @@ void MainWindow::setupUI()
     containerLayout->addWidget(packageList);
     containerLayout->addWidget(detailsView);
     
-    // Create central widget with layout
-    QWidget* centralWidget = new QWidget(this);
-    QVBoxLayout* centralLayout = new QVBoxLayout(centralWidget);
-    centralLayout->setContentsMargins(0, 0, 0, 0);
-    centralLayout->addWidget(container);
-    
     // Add drop shadow to container
     QGraphicsDropShadowEffect* shadow = new QGraphicsDropShadowEffect;
     shadow->setBlurRadius(20);
@@ -233,7 +221,7 @@ void MainWindow::setupUI()
     shadow->setOffset(4, 4);
     container->setGraphicsEffect(shadow);
     
-    setCentralWidget(centralWidget);
+    setCentralWidget(container);
     
     // Adjust window size and position
     resize(900, 700);
