@@ -281,57 +281,24 @@ QString UPSClient::getAuthToken()
         return QString();
     }
     
-    // First try to parse as JSON
+    // Parse the response
     QJsonParseError parseError;
-    QJsonDocument doc = QJsonDocument::fromJson(responseData, &parseError);
+    QJsonDocument doc = QJsonDocument::fromJson(response.toUtf8(), &parseError);
     
     if (parseError.error != QJsonParseError::NoError) {
-        // If JSON parsing fails, check if it's an HTML error page
-        if (responseData.contains("<html") || responseData.contains("<!DOCTYPE")) {
-            emit trackingError("UPS API returned HTML error page - check API endpoint URL");
-            return QString();
-        }
-        
         qDebug() << "JSON parse error:" << parseError.errorString();
-        qDebug() << "Response data:" << responseData;
-        qDebug() << "HTTP Status:" << reply->attribute(QNetworkRequest::HttpStatusCodeAttribute).toInt();
-        qDebug() << "Headers:" << reply->rawHeaderPairs();
-        emit trackingError(QString("Failed to parse UPS auth response: %1").arg(parseError.errorString()));
+        emit trackingError("Failed to parse UPS auth response");
         return QString();
     }
     
     if (!doc.isObject()) {
         qDebug() << "Invalid JSON response format";
-        qDebug() << "Response data:" << responseData;
         emit trackingError("Invalid UPS auth response format");
         return QString();
     }
     
     QJsonObject obj = doc.object();
     if (!obj.contains("access_token")) {
-        // Check for error details in response
-        if (obj.contains("response")) {
-            QJsonObject response = obj["response"].toObject();
-            if (response.contains("errors")) {
-                QJsonArray errors = response["errors"].toArray();
-                if (!errors.isEmpty()) {
-                    QString errorMessage = errors[0].toObject()["message"].toString();
-                    emit trackingError(QString("UPS Auth Error: %1").arg(errorMessage));
-                    return QString();
-                }
-            }
-        }
-        
-        // Check for alternative error format
-        if (obj.contains("error")) {
-            QString errorMessage = obj["error"].toString();
-            if (obj.contains("error_description")) {
-                errorMessage += ": " + obj["error_description"].toString();
-            }
-            emit trackingError(errorMessage);
-            return QString();
-        }
-        
         qDebug() << "No access token in response:" << obj;
         emit trackingError("No access token in UPS response");
         return QString();
@@ -339,6 +306,8 @@ QString UPSClient::getAuthToken()
 
     QString token = obj["access_token"].toString();
     qDebug() << "Successfully retrieved UPS token";
+    qDebug() << "Token type:" << obj["token_type"].toString();
+    qDebug() << "Expires in:" << obj["expires_in"].toString();
     return token;
 }
 
