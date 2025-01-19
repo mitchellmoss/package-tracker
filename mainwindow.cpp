@@ -22,7 +22,7 @@ MainWindow::MainWindow(QWidget *parent)
         QString trackingNumber = info["trackingNumber"].toString();
         packageDetails[trackingNumber] = info;
         packageDetails[trackingNumber]["carrier"] = "FedEx";
-        showPackageDetails(trackingNumber);
+        this->showPackageDetails(trackingNumber);
     });
     connect(fedexClient, &FedExClient::trackingError, this, [this](const QString& error) {
         QMessageBox::warning(this, "FedEx Tracking Error", error);
@@ -33,7 +33,7 @@ MainWindow::MainWindow(QWidget *parent)
         QString trackingNumber = info["trackingNumber"].toString();
         packageDetails[trackingNumber] = info;
         packageDetails[trackingNumber]["carrier"] = "UPS";
-        showPackageDetails(trackingNumber);
+        this->showPackageDetails(trackingNumber);
     });
     connect(upsClient, &UPSClient::trackingError, this, [this](const QString& error) {
         QMessageBox::warning(this, "UPS Tracking Error", error);
@@ -152,7 +152,7 @@ void MainWindow::refreshPackages()
 
 void MainWindow::showPackageDetails(QListWidgetItem *item)
 {
-    showPackageDetails(item->text());
+    this->showPackageDetails(item->text());
 }
 
 void MainWindow::showPackageDetails(const QString& trackingNumber)

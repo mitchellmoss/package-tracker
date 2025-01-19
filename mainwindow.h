@@ -8,6 +8,9 @@
 #include <QTextEdit>
 #include <QSettings>
 #include <QSystemTrayIcon>
+#include <QMenuBar>
+#include <QMenu>
+#include <QCoreApplication>
 #include "fedexclient.h"
 #include "upsclient.h"
 #include "settingsdialog.h"
@@ -25,6 +28,8 @@ private slots:
     void removePackage();
     void refreshPackages();
     void showPackageDetails(QListWidgetItem* item);
+    void showPackageDetails(const QString& trackingNumber);
+    void setupTrayIcon();
 
 private:
     void setupUI();
