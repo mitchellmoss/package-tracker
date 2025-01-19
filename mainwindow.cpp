@@ -224,7 +224,7 @@ MainWindow::MainWindow(QWidget *parent)
     qDebug() << "UPS Secret:" << (upsSecret.isEmpty() ? "Not set" : "Set");
     
     fedexClient = new FedExClient(fedexKey, fedexSecret, this);
-    upsClient = new UPSClient(upsId, upsSecret, this);
+    upsClient = new UPSClient(upsId, upsSecret, upsAccessKey, this);
     
     // Connect FedEx signals
     connect(fedexClient, &FedExClient::trackingInfoReceived, this, [this](const QJsonObject& info) {
@@ -511,7 +511,8 @@ void MainWindow::loadPackages()
 }
 
 void MainWindow::updateApiClients(const QString& fedexKey, const QString& fedexSecret,
-                                 const QString& upsId, const QString& upsSecret)
+                                 const QString& upsId, const QString& upsSecret,
+                                 const QString& upsAccessKey)
 {
     fedexClient->deleteLater();
     upsClient->deleteLater();

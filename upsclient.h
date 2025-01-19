@@ -10,7 +10,7 @@ class UPSClient : public QObject
     Q_OBJECT
     
 public:
-    explicit UPSClient(const QString& clientId, const QString& clientSecret, QObject *parent = nullptr);
+    explicit UPSClient(const QString& clientId, const QString& clientSecret, const QString& accessLicenseNumber, QObject *parent = nullptr);
     void trackPackage(const QString& trackingNumber);
     void subscribeToTracking(const QString& trackingNumber, const QString& callbackUrl);
     
@@ -28,6 +28,7 @@ private:
     QNetworkAccessManager* authManager;  // Add this line
     QString clientId;
     QString clientSecret;
+    QString accessLicenseNumber;
     QString callbackUrl;
 
     QString getAuthToken();

@@ -10,8 +10,8 @@
 #include <QDateTime>
 #include <QDebug>
 
-UPSClient::UPSClient(const QString& clientId, const QString& clientSecret, QObject *parent)
-    : QObject(parent), clientId(clientId), clientSecret(clientSecret)
+UPSClient::UPSClient(const QString& clientId, const QString& clientSecret, const QString& accessLicenseNumber, QObject *parent)
+    : QObject(parent), clientId(clientId), clientSecret(clientSecret), accessLicenseNumber(accessLicenseNumber)
 {
     manager = new QNetworkAccessManager(this);
     authManager = new QNetworkAccessManager(this);  // Add this line
@@ -38,6 +38,7 @@ void UPSClient::trackPackage(const QString& trackingNumber)
     request.setRawHeader("Authorization", ("Bearer " + token).toUtf8());
     request.setRawHeader("transId", "TRACK" + QDateTime::currentDateTime().toString("yyyyMMddhhmmss").toUtf8());
     request.setRawHeader("transactionSrc", "testing");
+    request.setRawHeader("AccessLicenseNumber", accessLicenseNumber.toUtf8());
 
     qDebug() << "Tracking package:" << trackingNumber;
     qDebug() << "Request URL:" << url.toString();

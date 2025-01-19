@@ -23,6 +23,8 @@ SettingsDialog::SettingsDialog(QWidget *parent)
     formLayout->addRow("FedEx API Secret:", fedexSecretInput);
     formLayout->addRow("UPS Client ID:", upsIdInput);
     formLayout->addRow("UPS Client Secret:", upsSecretInput);
+    upsAccessKeyInput = new QLineEdit(this);
+    formLayout->addRow("UPS Access Key:", upsAccessKeyInput);
     
     QPushButton* saveButton = new QPushButton("Save", this);
     connect(saveButton, &QPushButton::clicked, this, [this, parent]() {
@@ -30,9 +32,10 @@ SettingsDialog::SettingsDialog(QWidget *parent)
         QString fedexSecret = fedexSecretInput->text().trimmed();
         QString upsId = upsIdInput->text().trimmed();
         QString upsSecret = upsSecretInput->text().trimmed();
-        
+        QString upsAccessKey = upsAccessKeyInput->text().trimmed();
+
         if (fedexKey.isEmpty() || fedexSecret.isEmpty() || 
-            upsId.isEmpty() || upsSecret.isEmpty()) {
+            upsId.isEmpty() || upsSecret.isEmpty() || upsAccessKey.isEmpty()) {
             QMessageBox::warning(this, "Invalid Credentials", 
                 "All API credentials must be filled out");
             return;
@@ -43,7 +46,8 @@ SettingsDialog::SettingsDialog(QWidget *parent)
         settings.setValue("fedexSecret", fedexSecret);
         settings.setValue("upsId", upsId);
         settings.setValue("upsSecret", upsSecret);
-        
+        settings.setValue("upsAccessKey", upsAccessKey);
+
         // Update clients with new credentials
         MainWindow* mainWindow = qobject_cast<MainWindow*>(parent);
         if (mainWindow) {
@@ -51,7 +55,8 @@ SettingsDialog::SettingsDialog(QWidget *parent)
                 fedexKeyInput->text(),
                 fedexSecretInput->text(),
                 upsIdInput->text(),
-                upsSecretInput->text()
+                upsSecretInput->text(),
+                upsAccessKeyInput->text()
             );
         }
         
@@ -64,6 +69,7 @@ SettingsDialog::SettingsDialog(QWidget *parent)
     fedexSecretInput->setText(settings.value("fedexSecret").toString());
     upsIdInput->setText(settings.value("upsId").toString());
     upsSecretInput->setText(settings.value("upsSecret").toString());
+    upsAccessKeyInput->setText(settings.value("upsAccessKey").toString());
     
     mainLayout->addLayout(formLayout);
     mainLayout->addWidget(saveButton);
