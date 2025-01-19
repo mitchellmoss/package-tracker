@@ -218,7 +218,7 @@ void MainWindow::setupTrayIcon()
 void MainWindow::mousePressEvent(QMouseEvent* event)
 {
     if (event->button() == Qt::LeftButton) {
-        dragPosition = event->globalPos() - frameGeometry().topLeft();
+        dragPosition = event->globalPosition().toPoint() - frameGeometry().topLeft();
         mousePressed = true;
         event->accept();
     }
@@ -227,7 +227,7 @@ void MainWindow::mousePressEvent(QMouseEvent* event)
 void MainWindow::mouseMoveEvent(QMouseEvent* event)
 {
     if (mousePressed && (event->buttons() & Qt::LeftButton)) {
-        move(event->globalPos() - dragPosition);
+        move(event->globalPosition().toPoint() - dragPosition);
         event->accept();
     }
 }

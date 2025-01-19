@@ -67,6 +67,11 @@ private:
     QVBoxLayout* containerLayout;
     QPoint dragPosition;
     bool mousePressed;
+    
+    // Mouse event handlers
+    void mousePressEvent(QMouseEvent* event) override;
+    void mouseMoveEvent(QMouseEvent* event) override;
+    void mouseReleaseEvent(QMouseEvent* event) override;
 };
 
 #endif // MAINWINDOW_H
