@@ -15,12 +15,14 @@ HEADERS += mainwindow.h \
            upsclient.h \
            settingsdialog.h
 
-# Specify Homebrew's Qt installation path
+# macOS specific configuration
 QMAKE_MACOSX_DEPLOYMENT_TARGET = 14.0
 QMAKE_APPLE_DEVICE_ARCHS = arm64
-QMAKE_LFLAGS += -F/opt/homebrew/lib
-INCLUDEPATH += /opt/homebrew/include
-LIBS += -F/opt/homebrew/lib -framework QtCore -framework QtGui -framework QtWidgets
+
+# Qt configuration for Homebrew
+QT_PREFIX = $$system(brew --prefix qt)
+INCLUDEPATH += $$QT_PREFIX/include
+LIBS += -L$$QT_PREFIX/lib
 
 # Silence SDK version warning
 CONFIG += sdk_no_version_check
