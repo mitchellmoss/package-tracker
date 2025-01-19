@@ -194,17 +194,19 @@ void UPSClient::handleTrackingEvent(const QJsonObject& event)
 
 QString UPSClient::getAuthToken()
 {
-    QUrl url("https://onlinetools.ups.com/security/v1/oauth/token");
+    QUrl url("https://wwwcie.ups.com/security/v1/oauth/token");
     QNetworkRequest request(url);
     request.setHeader(QNetworkRequest::ContentTypeHeader, "application/x-www-form-urlencoded");
 
-    // Create Basic Auth header
-    QString auth = QString("%1:%2").arg(clientId).arg(clientSecret);
-    QString authHeader = "Basic " + auth.toUtf8().toBase64();
-    request.setRawHeader("Authorization", authHeader.toUtf8());
+    // Remove Basic Auth header
+    // Create form data with client ID and secret
+    QUrlQuery params;
+    params.addQueryItem("grant_type", "client_credentials");
+    params.addQueryItem("client_id", clientId);
+    params.addQueryItem("client_secret", clientSecret);
+    params.addQueryItem("scope", "trck");
 
-    // Create form data with scope parameter
-    QString postData = "grant_type=client_credentials&scope=trck";
+    QString postData = params.query(QUrl::FullyEncoded);
 
     qDebug() << "Requesting UPS auth token with client ID:" << clientId;
     qDebug() << "Auth header:" << authHeader;
