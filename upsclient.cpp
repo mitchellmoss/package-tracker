@@ -188,7 +188,11 @@ QString UPSClient::getAuthToken()
     qDebug() << "Requesting UPS auth token with client ID:" << clientId;
     qDebug() << "Auth header:" << authHeader;
 
-    QNetworkReply* reply = manager->post(request, params.toString(QUrl::FullyEncoded).toUtf8());
+    QByteArray postData = params.toString(QUrl::FullyEncoded).toUtf8();
+    qDebug() << "UPS Auth Request URL:" << url;
+    qDebug() << "UPS Auth Request Data:" << postData;
+    
+    QNetworkReply* reply = manager->post(request, postData);
     
     // Wait for reply with timeout
     QEventLoop loop;

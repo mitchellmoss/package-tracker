@@ -25,11 +25,23 @@ SettingsDialog::SettingsDialog(QWidget *parent)
     
     QPushButton* saveButton = new QPushButton("Save", this);
     connect(saveButton, &QPushButton::clicked, this, [this, parent]() {
+        QString fedexKey = fedexKeyInput->text().trimmed();
+        QString fedexSecret = fedexSecretInput->text().trimmed();
+        QString upsId = upsIdInput->text().trimmed();
+        QString upsSecret = upsSecretInput->text().trimmed();
+        
+        if (fedexKey.isEmpty() || fedexSecret.isEmpty() || 
+            upsId.isEmpty() || upsSecret.isEmpty()) {
+            QMessageBox::warning(this, "Invalid Credentials", 
+                "All API credentials must be filled out");
+            return;
+        }
+        
         QSettings settings;
-        settings.setValue("fedexKey", fedexKeyInput->text());
-        settings.setValue("fedexSecret", fedexSecretInput->text());
-        settings.setValue("upsId", upsIdInput->text());
-        settings.setValue("upsSecret", upsSecretInput->text());
+        settings.setValue("fedexKey", fedexKey);
+        settings.setValue("fedexSecret", fedexSecret);
+        settings.setValue("upsId", upsId);
+        settings.setValue("upsSecret", upsSecret);
         
         // Update clients with new credentials
         MainWindow* mainWindow = qobject_cast<MainWindow*>(parent);

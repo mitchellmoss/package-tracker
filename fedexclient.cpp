@@ -71,14 +71,34 @@ QString FedExClient::getAuthToken()
         return QString();
     }
 
-    QJsonDocument doc = QJsonDocument::fromJson(reply->readAll());
-    if (!doc.isObject() || !doc.object().contains("access_token")) {
-        qDebug() << "Invalid FedEx auth response:" << doc;
-        emit trackingError("Invalid authentication response from FedEx");
+    QByteArray responseData = reply->readAll();
+    qDebug() << "Raw UPS auth response:" << responseData;
+    
+    QJsonParseError parseError;
+    QJsonDocument doc = QJsonDocument::fromJson(responseData, &parseError);
+    
+    if (parseError.error != QJsonParseError::NoError) {
+        qDebug() << "JSON parse error:" << parseError.errorString();
+        emit trackingError("Failed to parse UPS auth response");
+        return QString();
+    }
+    
+    if (!doc.isObject()) {
+        qDebug() << "Invalid JSON response format";
+        emit trackingError("Invalid UPS auth response format");
+        return QString();
+    }
+    
+    QJsonObject obj = doc.object();
+    if (!obj.contains("access_token")) {
+        qDebug() << "No access token in response:" << obj;
+        emit trackingError("No access token in UPS response");
         return QString();
     }
 
-    return doc.object()["access_token"].toString();
+    QString token = obj["access_token"].toString();
+    qDebug() << "Successfully retrieved UPS token";
+    return token;
 }
 
 void FedExClient::onRequestFinished(QNetworkReply* reply)

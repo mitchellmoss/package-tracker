@@ -340,8 +340,23 @@ void MainWindow::setupUI()
     QMenuBar* menuBar = new QMenuBar(this);
     QMenu* settingsMenu = menuBar->addMenu("Settings");
     settingsMenu->addAction("API Credentials", this, [this]() {
-        settingsDialog = new SettingsDialog(this);
-        settingsDialog->exec();
+        SettingsDialog* dialog = new SettingsDialog(this);
+        connect(dialog, &SettingsDialog::accepted, this, [this, dialog]() {
+            QString fedexKey = dialog->fedexKeyInput->text();
+            QString fedexSecret = dialog->fedexSecretInput->text();
+            QString upsId = dialog->upsIdInput->text();
+            QString upsSecret = dialog->upsSecretInput->text();
+        
+            if (fedexKey.isEmpty() || fedexSecret.isEmpty() || 
+                upsId.isEmpty() || upsSecret.isEmpty()) {
+                QMessageBox::warning(this, "Invalid Credentials", 
+                    "All API credentials must be filled out");
+                return;
+            }
+        
+            updateApiClients(fedexKey, fedexSecret, upsId, upsSecret);
+        });
+        dialog->exec();
     });
     setMenuBar(menuBar);
 
