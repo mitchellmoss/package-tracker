@@ -1,8 +1,5 @@
 <RCC>
     <qresource prefix="/icons">
         <file>icons/package.png</file>
-        <file>icons/in-transit.png</file>
-        <file>icons/delivered.png</file>
-        <file>icons/error.png</file>
     </qresource>
 </RCC>
