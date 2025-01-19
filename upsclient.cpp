@@ -25,35 +25,126 @@ void UPSClient::trackPackage(const QString& trackingNumber)
         return;
     }
 
-    QUrl url("https://onlinetools.ups.com/api/track/v1/details");
+    QUrl url("https://onlinetools.ups.com/api/track/v1/details/" + trackingNumber);
     QNetworkRequest request(url);
     request.setRawHeader("Authorization", ("Bearer " + token).toUtf8());
     request.setHeader(QNetworkRequest::ContentTypeHeader, "application/json");
     request.setRawHeader("transId", "TRACK" + QDateTime::currentDateTime().toString("yyyyMMddhhmmss").toUtf8());
     request.setRawHeader("transactionSrc", "PackageTracker");
 
-    // Create JSON payload
-    QJsonObject payload;
-    QJsonObject requestObj;
-    QJsonObject inquiryNumberObj;
-    
-    inquiryNumberObj["trackingNumber"] = trackingNumber;
-    requestObj["inquiryNumber"] = inquiryNumberObj;
-    payload["TrackRequest"] = requestObj;
-
     // Add debug output
     qDebug() << "Tracking package:" << trackingNumber;
     qDebug() << "Using token:" << token;
-    qDebug() << "Payload:" << QJsonDocument(payload).toJson();
 
-    QNetworkReply* reply = manager->post(request, QJsonDocument(payload).toJson());
+    QNetworkReply* reply = manager->get(request);
     
-    connect(reply, &QNetworkReply::finished, this, [reply]() {
+    connect(reply, &QNetworkReply::finished, this, [this, reply]() {
         if (reply->error() != QNetworkReply::NoError) {
             qDebug() << "Tracking Error:" << reply->errorString();
             qDebug() << "Response:" << reply->readAll();
+            emit trackingError(reply->errorString());
+            return;
         }
+
+        QJsonDocument doc = QJsonDocument::fromJson(reply->readAll());
+        if (!doc.isObject()) {
+            emit trackingError("Invalid response format");
+            return;
+        }
+
+        emit trackingInfoReceived(doc.object());
     });
+}
+
+void UPSClient::subscribeToTracking(const QString& trackingNumber, const QString& callbackUrl)
+{
+    QString token = getAuthToken();
+    if (token.isEmpty()) {
+        emit trackingError("Failed to get authentication token");
+        return;
+    }
+
+    this->callbackUrl = callbackUrl;
+
+    QUrl url("https://onlinetools.ups.com/api/track/v1/subscriptions/standard/package");
+    QNetworkRequest request(url);
+    request.setRawHeader("Authorization", ("Bearer " + token).toUtf8());
+    request.setHeader(QNetworkRequest::ContentTypeHeader, "application/json");
+    request.setRawHeader("transId", "SUB" + QDateTime::currentDateTime().toString("yyyyMMddhhmmss").toUtf8());
+    request.setRawHeader("transactionSrc", "PackageTracker");
+
+    // Create subscription payload
+    QJsonObject payload;
+    payload["locale"] = "en_US";
+    payload["countryCode"] = "US";
+    payload["trackingNumberList"] = QJsonArray{trackingNumber};
+    payload["destination"] = QJsonObject{
+        {"url", callbackUrl},
+        {"credentialType", "Bearer"},
+        {"credential", token}
+    };
+
+    qDebug() << "Subscribing to tracking:" << trackingNumber;
+    qDebug() << "Callback URL:" << callbackUrl;
+
+    QNetworkReply* reply = manager->post(request, QJsonDocument(payload).toJson());
+    
+    connect(reply, &QNetworkReply::finished, this, [this, reply]() {
+        if (reply->error() != QNetworkReply::NoError) {
+            qDebug() << "Subscription Error:" << reply->errorString();
+            qDebug() << "Response:" << reply->readAll();
+            emit trackingError(reply->errorString());
+            return;
+        }
+
+        QJsonDocument doc = QJsonDocument::fromJson(reply->readAll());
+        if (!doc.isObject()) {
+            emit trackingError("Invalid subscription response");
+            return;
+        }
+
+        qDebug() << "Subscription successful:" << doc.toJson();
+    });
+}
+
+void UPSClient::onTrackingEvent(QNetworkReply* reply)
+{
+    if (reply->error() != QNetworkReply::NoError) {
+        qDebug() << "Tracking Event Error:" << reply->errorString();
+        return;
+    }
+
+    QJsonDocument doc = QJsonDocument::fromJson(reply->readAll());
+    if (!doc.isObject()) {
+        qDebug() << "Invalid tracking event format";
+        return;
+    }
+
+    handleTrackingEvent(doc.object());
+}
+
+void UPSClient::handleTrackingEvent(const QJsonObject& event)
+{
+    // Parse the tracking event according to UPS API format
+    QJsonObject result;
+    result["trackingNumber"] = event["trackingNumber"].toString();
+    result["status"] = event["activityStatus"].toObject()["description"].toString();
+    
+    QJsonArray events;
+    events.append(QJsonObject{
+        {"timestamp", event["localActivityDate"].toString() + " " + event["localActivityTime"].toString()},
+        {"description", event["activityStatus"].toObject()["description"].toString()},
+        {"location", event["activityLocation"].toObject()["city"].toString() + ", " + 
+                   event["activityLocation"].toObject()["stateProvince"].toString()}
+    });
+    
+    result["events"] = events;
+    
+    if (event.contains("scheduledDeliveryDate")) {
+        result["estimatedDelivery"] = event["scheduledDeliveryDate"].toString();
+    }
+    
+    emit trackingEventReceived(result);
 }
 
 QString UPSClient::getAuthToken()
