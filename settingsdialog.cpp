@@ -24,7 +24,7 @@ SettingsDialog::SettingsDialog(QWidget *parent)
     formLayout->addRow("UPS Client Secret:", upsSecretInput);
     
     QPushButton* saveButton = new QPushButton("Save", this);
-    connect(saveButton, &QPushButton::clicked, this, [this]() {
+    connect(saveButton, &QPushButton::clicked, this, [this, parent]() {
         QSettings settings;
         settings.setValue("fedexKey", fedexKeyInput->text());
         settings.setValue("fedexSecret", fedexSecretInput->text());

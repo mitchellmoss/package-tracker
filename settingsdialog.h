@@ -11,7 +11,7 @@ class SettingsDialog : public QDialog
 public:
     explicit SettingsDialog(QWidget *parent = nullptr);
 
-private:
+public:
     QLineEdit* fedexKeyInput;
     QLineEdit* fedexSecretInput;
     QLineEdit* upsIdInput;
