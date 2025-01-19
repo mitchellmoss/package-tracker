@@ -41,6 +41,7 @@ void UPSClient::trackPackage(const QString& trackingNumber)
     request.setRawHeader("transId", QDateTime::currentDateTime().toString("TRACKyyyyMMddhhmmss").toUtf8());
     request.setRawHeader("transactionSrc", "testing");
     request.setRawHeader("Accept", "application/json");
+    request.setRawHeader("Content-Type", "application/json");
     
     qDebug() << "Tracking package:" << trackingNumber;
     qDebug() << "Request URL:" << url.toString();
@@ -205,8 +206,7 @@ QString UPSClient::getAuthToken()
     
     // Set required headers
     request.setHeader(QNetworkRequest::ContentTypeHeader, "application/x-www-form-urlencoded");
-    request.setRawHeader("x-merchant-id", clientId.toUtf8());
-
+    
     // Create Basic Auth header with proper encoding
     QString credentials = clientId + ":" + clientSecret;
     QByteArray base64Credentials = credentials.toUtf8().toBase64();
@@ -215,7 +215,7 @@ QString UPSClient::getAuthToken()
     // Create properly formatted form data
     QUrlQuery query;
     query.addQueryItem("grant_type", "client_credentials");
-    query.addQueryItem("scope", "trck");
+    query.addQueryItem("scope", "track");
     QByteArray postData = query.toString(QUrl::FullyEncoded).toUtf8();
 
     qDebug() << "Requesting UPS auth token";
