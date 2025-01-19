@@ -218,11 +218,11 @@ QString UPSClient::getAuthToken()
         return QString();
     }
     
-    // Check for SSL errors
     // Read response data first
+    QByteArray responseData = reply->readAll();
     
     // Check for SSL errors
-    const QList<QSslError>& sslErrors = reply->sslErrors();
+    QList<QSslError> sslErrors = reply->sslErrors();
     if (!sslErrors.isEmpty()) {
         qDebug() << "SSL Errors:";
         for (const QSslError& error : sslErrors) {
