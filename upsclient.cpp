@@ -217,12 +217,26 @@ QString UPSClient::getAuthToken()
         return QString();
     }
 
-    if (reply->error() != QNetworkReply::NoError) {
-        QString response = reply->readAll();
-        int statusCode = reply->attribute(QNetworkRequest::HttpStatusCodeAttribute).toInt();
-        qDebug() << "UPS Auth Error:" << reply->errorString();
-        qDebug() << "Status Code:" << statusCode;
+    // Check response status code
+    int statusCode = reply->attribute(QNetworkRequest::HttpStatusCodeAttribute).toInt();
+    QString response = reply->readAll();
+    
+    if (statusCode != 200) {
+        qDebug() << "UPS Auth Error - Status Code:" << statusCode;
         qDebug() << "Response:" << response;
+        
+        // Try to parse error details
+        QJsonParseError parseError;
+        QJsonDocument errorDoc = QJsonDocument::fromJson(response.toUtf8(), &parseError);
+        if (parseError.error == QJsonParseError::NoError && errorDoc.isObject()) {
+            QJsonObject errorObj = errorDoc.object();
+            QString errorMessage = errorObj["response"].toObject()["errors"].toArray()[0].toObject()["message"].toString();
+            emit trackingError(QString("UPS Auth Error (%1): %2").arg(statusCode).arg(errorMessage));
+        } else {
+            emit trackingError(QString("UPS Auth Error (%1): %2").arg(statusCode).arg(response));
+        }
+        return QString();
+    }
         
         // Try to parse error details
         QJsonParseError parseError;
