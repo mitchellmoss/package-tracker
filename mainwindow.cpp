@@ -2,6 +2,11 @@
 #include <QVBoxLayout>
 #include <QHBoxLayout>
 #include <QMessageBox>
+#include <QPainter>
+#include <QGraphicsBlurEffect>
+#include <QGraphicsPixmapItem>
+#include <QScreen>
+#include <QWindow>
 #include <QFile>
 #include <QJsonDocument>
 #include <QJsonArray>
@@ -11,9 +16,64 @@
 #include <QIcon>
 #include <QTimer>
 
+void FrostedGlassEffect::draw(QPainter* painter)
+{
+    QPoint offset;
+    QPixmap pixmap = sourcePixmap(Qt::LogicalCoordinates, &offset, QGraphicsEffect::PadToEffectiveBoundingRect);
+    
+    QImage temp(pixmap.size(), QImage::Format_ARGB32_Premultiplied);
+    temp.fill(0);
+    
+    QPainter tempPainter(&temp);
+    tempPainter.setCompositionMode(QPainter::CompositionMode_Source);
+    tempPainter.drawPixmap(offset, pixmap);
+    tempPainter.setCompositionMode(QPainter::CompositionMode_SourceIn);
+    tempPainter.fillRect(temp.rect(), QColor(255, 255, 255, 180));
+    tempPainter.end();
+    
+    QGraphicsBlurEffect* blur = new QGraphicsBlurEffect;
+    blur->setBlurRadius(10);
+    
+    QGraphicsScene scene;
+    QGraphicsPixmapItem item;
+    item.setPixmap(QPixmap::fromImage(temp));
+    item.setGraphicsEffect(blur);
+    scene.addItem(&item);
+    
+    scene.render(painter, QRectF(), QRectF(-offset.x(), -offset.y(), pixmap.width(), pixmap.height()));
+}
+
 MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent)
 {
+    // Enable translucent background
+    setAttribute(Qt::WA_TranslucentBackground);
+    setWindowFlags(windowFlags() | Qt::FramelessWindowHint);
+    
+    // Create frosted glass effect
+    FrostedGlassEffect* effect = new FrostedGlassEffect(this);
+    setGraphicsEffect(effect);
+    
+    // Set window background color with transparency
+    setStyleSheet(R"(
+        QMainWindow {
+            background-color: rgba(255, 255, 255, 0.7);
+            border-radius: 10px;
+        }
+        QListWidget, QTextEdit, QLineEdit {
+            background-color: rgba(255, 255, 255, 0.8);
+            border-radius: 5px;
+            padding: 5px;
+        }
+        QPushButton {
+            background-color: rgba(255, 255, 255, 0.9);
+            border-radius: 5px;
+            padding: 5px;
+        }
+        QPushButton:hover {
+            background-color: rgba(255, 255, 255, 1.0);
+        }
+    )");
     // Initialize API clients with your credentials
     fedexClient = new FedExClient("YOUR_FEDEX_API_KEY", "YOUR_FEDEX_API_SECRET", this);
     upsClient = new UPSClient("YOUR_UPS_CLIENT_ID", "YOUR_UPS_CLIENT_SECRET", this);
@@ -108,7 +168,21 @@ void MainWindow::setupUI()
     mainLayout->addWidget(packageList);
     mainLayout->addWidget(detailsView);
     
+    // Add drop shadow
+    QGraphicsDropShadowEffect* shadow = new QGraphicsDropShadowEffect;
+    shadow->setBlurRadius(20);
+    shadow->setColor(QColor(0, 0, 0, 160));
+    shadow->setOffset(0, 0);
+    centralWidget->setGraphicsEffect(shadow);
+    
     setCentralWidget(centralWidget);
+    
+    // Adjust window size and position
+    resize(800, 600);
+    QRect screenGeometry = QGuiApplication::primaryScreen()->geometry();
+    int x = (screenGeometry.width() - width()) / 2;
+    int y = (screenGeometry.height() - height()) / 2;
+    move(x, y);
     
     // Connect signals
     connect(addButton, &QPushButton::clicked, this, &MainWindow::addPackage);

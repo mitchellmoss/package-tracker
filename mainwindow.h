@@ -11,9 +11,19 @@
 #include <QMenuBar>
 #include <QMenu>
 #include <QCoreApplication>
+#include <QGraphicsEffect>
 #include "fedexclient.h"
 #include "upsclient.h"
 #include "settingsdialog.h"
+
+class FrostedGlassEffect : public QGraphicsEffect
+{
+    Q_OBJECT
+public:
+    FrostedGlassEffect(QObject* parent = nullptr) : QGraphicsEffect(parent) {}
+protected:
+    void draw(QPainter* painter) override;
+};
 
 class MainWindow : public QMainWindow
 {
