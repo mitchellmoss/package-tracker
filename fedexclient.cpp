@@ -34,16 +34,21 @@ void FedExClient::trackPackage(const QString& trackingNumber)
     request.setRawHeader("x-customer-transaction-id", transactionId.toUtf8());
     request.setRawHeader("x-locale", "en_US");
     request.setRawHeader("x-version", "1");
+    request.setRawHeader("x-fedex-client-id", apiKey.toUtf8());
+    request.setRawHeader("x-fedex-client-secret", apiSecret.toUtf8());
 
     QJsonObject trackingNumberInfo;
     trackingNumberInfo["trackingNumber"] = trackingNumber;
     trackingNumberInfo["carrierCode"] = "FDXE"; // FedEx Express
-    trackingNumberInfo["shipDateBegin"] = QDate::currentDate().addDays(-30).toString("yyyy-MM-dd");
+    trackingNumberInfo["shipDateBegin"] = QDate::currentDate().addDays(-45).toString("yyyy-MM-dd");
     trackingNumberInfo["shipDateEnd"] = QDate::currentDate().addDays(1).toString("yyyy-MM-dd");
 
     QJsonObject payload;
     payload["includeDetailedScans"] = true;
     payload["trackingInfo"] = QJsonArray{trackingNumberInfo};
+    payload["appDeviceType"] = "DESKTOP.BROWSER.CHROME.WINDOWS";
+    payload["appType"] = "WTRK";
+    payload["uniqueKey"] = "";
 
     QByteArray jsonData = QJsonDocument(payload).toJson();
     
@@ -173,6 +178,25 @@ void FedExClient::onRequestFinished(QNetworkReply* reply)
     if (reply->error() != QNetworkReply::NoError) {
         QString errorMsg = "Network Error: " + reply->errorString();
         qDebug() << "FedEx Tracking Error:" << errorMsg;
+        qDebug() << "Response:" << responseData;
+        
+        // Try to parse error response for more details
+        QJsonDocument errorDoc = QJsonDocument::fromJson(responseData);
+        if (errorDoc.isObject()) {
+            QJsonObject errorObj = errorDoc.object();
+            if (errorObj.contains("transactionId")) {
+                errorMsg += "\nTransaction ID: " + errorObj["transactionId"].toString();
+            }
+            if (errorObj.contains("errors")) {
+                QJsonArray errors = errorObj["errors"].toArray();
+                for (const QJsonValue &error : errors) {
+                    QJsonObject errorDetails = error.toObject();
+                    errorMsg += "\nCode: " + errorDetails["code"].toString();
+                    errorMsg += "\nMessage: " + errorDetails["message"].toString();
+                }
+            }
+        }
+        
         emit trackingError(errorMsg);
         return;
     }
