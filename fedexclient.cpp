@@ -40,7 +40,21 @@ void FedExClient::trackPackage(const QString& trackingNumber)
     payload["includeDetailedScans"] = true;
     payload["trackingInfo"] = QJsonArray{trackingNumberInfo};
 
-    manager->post(request, QJsonDocument(payload).toJson());
+    QByteArray jsonData = QJsonDocument(payload).toJson();
+    
+    qDebug() << "FedEx Tracking Request URL:" << url.toString();
+    qDebug() << "FedEx Tracking Headers:";
+    qDebug() << " - Authorization: Bearer" << token;
+    qDebug() << " - Transaction ID:" << transactionId;
+    qDebug() << "FedEx Tracking Request Payload:" << jsonData;
+
+    QNetworkReply* reply = manager->post(request, jsonData);
+    
+    // Add error handling for the request itself
+    connect(reply, &QNetworkReply::errorOccurred, this, [this, reply](QNetworkReply::NetworkError error) {
+        qDebug() << "FedEx Tracking Network Error:" << error;
+        qDebug() << "Error String:" << reply->errorString();
+    });
 }
 
 QString FedExClient::getAuthToken()
@@ -144,12 +158,21 @@ QString FedExClient::getAuthToken()
 
 void FedExClient::onRequestFinished(QNetworkReply* reply)
 {
+    QByteArray responseData = reply->readAll();
+    int statusCode = reply->attribute(QNetworkRequest::HttpStatusCodeAttribute).toInt();
+    
+    qDebug() << "FedEx Tracking Response Status:" << statusCode;
+    qDebug() << "FedEx Tracking Response Headers:" << reply->rawHeaderPairs();
+    qDebug() << "FedEx Tracking Response Body:" << responseData;
+
     if (reply->error() != QNetworkReply::NoError) {
-        emit trackingError(reply->errorString());
+        QString errorMsg = "Network Error: " + reply->errorString();
+        qDebug() << "FedEx Tracking Error:" << errorMsg;
+        emit trackingError(errorMsg);
         return;
     }
 
-    QJsonDocument doc = QJsonDocument::fromJson(reply->readAll());
+    QJsonDocument doc = QJsonDocument::fromJson(responseData);
     if (!doc.isObject()) {
         emit trackingError("Invalid response format");
         return;
