@@ -653,6 +653,7 @@ void MainWindow::showPackageDetails(const QString& trackingNumber)
 
 void MainWindow::loadPackages()
 {
+    QSettings settings;
     QStringList packages = settings.value("trackingNumbers").toStringList();
     QMap<QString, QVariant> notes = settings.value("packageNotes").toMap();
     
@@ -660,10 +661,15 @@ void MainWindow::loadPackages()
         QListWidgetItem* item = new QListWidgetItem(trackingNumber);
         item->setData(Qt::UserRole, "UNKNOWN");
         
+        // Load note if it exists
         if (notes.contains(trackingNumber)) {
             QString note = notes[trackingNumber].toString();
             item->setData(Qt::UserRole + 1, note);
             packageNotes[trackingNumber] = note;
+        } else {
+            // Initialize with empty note if none exists
+            item->setData(Qt::UserRole + 1, "");
+            packageNotes[trackingNumber] = "";
         }
         
         packageList->addItem(item);
@@ -751,12 +757,13 @@ void MainWindow::savePackages()
         QString trackingNumber = item->text();
         packages << trackingNumber;
         
+        // Save all notes, even empty ones
         QString note = item->data(Qt::UserRole + 1).toString();
-        if (!note.isEmpty()) {
-            notes[trackingNumber] = note;
-        }
+        notes[trackingNumber] = note;
     }
     
+    QSettings settings;
     settings.setValue("trackingNumbers", packages);
     settings.setValue("packageNotes", notes);
+    settings.sync(); // Ensure changes are written to disk
 }
