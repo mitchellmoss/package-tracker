@@ -47,31 +47,69 @@ QString FedExClient::getAuthToken()
 {
     QUrl url("https://apis.fedex.com/oauth/token");
     QNetworkRequest request(url);
+    
+    // Set required headers
     request.setHeader(QNetworkRequest::ContentTypeHeader, "application/x-www-form-urlencoded");
-
-    // Create form data - no Basic Auth header needed
-    QByteArray postData;
-    postData.append("grant_type=client_credentials");
-    postData.append("&client_id=" + QUrl::toPercentEncoding(apiKey));
-    postData.append("&client_secret=" + QUrl::toPercentEncoding(apiSecret));
+    request.setRawHeader("Accept", "application/json");
+    
+    // Create form data
+    QUrlQuery query;
+    query.addQueryItem("grant_type", "client_credentials");
+    query.addQueryItem("client_id", apiKey);
+    query.addQueryItem("client_secret", apiSecret);
+    
+    QByteArray postData = query.toString(QUrl::FullyEncoded).toUtf8();
 
     qDebug() << "FedEx Auth Request URL:" << url.toString();
+    qDebug() << "FedEx Auth Request Headers:";
+    qDebug() << " - Content-Type:" << request.header(QNetworkRequest::ContentTypeHeader).toString();
+    qDebug() << " - Accept: application/json";
     qDebug() << "FedEx Auth Request Data:" << postData;
 
-    QNetworkReply* reply = manager->post(request, postData);
+    // Create a separate manager for auth requests to avoid signal conflicts
+    QNetworkAccessManager authManager;
+    QNetworkReply* reply = authManager.post(request, postData);
     
     // Wait for reply with timeout
     QEventLoop loop;
-    QTimer::singleShot(5000, &loop, &QEventLoop::quit);
+    QTimer::singleShot(30000, &loop, &QEventLoop::quit); // Increased timeout to 30 seconds
     connect(reply, &QNetworkReply::finished, &loop, &QEventLoop::quit);
     loop.exec();
 
-    if (reply->error() != QNetworkReply::NoError) {
-        QString response = reply->readAll();
-        qDebug() << "FedEx Auth Error:" << reply->errorString();
-        qDebug() << "Status Code:" << reply->attribute(QNetworkRequest::HttpStatusCodeAttribute).toInt();
-        qDebug() << "Response:" << response;
-        emit trackingError(QString("FedEx Auth Error: %1\nResponse: %2").arg(reply->errorString()).arg(response));
+    // Check for timeout
+    if (reply->isRunning()) {
+        reply->abort();
+        emit trackingError("FedEx authentication request timed out");
+        reply->deleteLater();
+        return QString();
+    }
+
+    int statusCode = reply->attribute(QNetworkRequest::HttpStatusCodeAttribute).toInt();
+    QByteArray responseData = reply->readAll();
+    
+    qDebug() << "FedEx Auth Response Status:" << statusCode;
+    qDebug() << "FedEx Auth Response Headers:" << reply->rawHeaderPairs();
+    qDebug() << "FedEx Auth Response Data:" << responseData;
+
+    if (reply->error() != QNetworkReply::NoError || statusCode != 200) {
+        QString errorMsg = "FedEx Auth Error: " + reply->errorString();
+        if (!responseData.isEmpty()) {
+            QJsonDocument errorDoc = QJsonDocument::fromJson(responseData);
+            if (errorDoc.isObject()) {
+                QJsonObject errorObj = errorDoc.object();
+                if (errorObj.contains("errors")) {
+                    QJsonArray errors = errorObj["errors"].toArray();
+                    if (!errors.isEmpty()) {
+                        QJsonObject error = errors.first().toObject();
+                        errorMsg += "\nError Code: " + error["code"].toString();
+                        errorMsg += "\nMessage: " + error["message"].toString();
+                    }
+                }
+            }
+        }
+        qDebug() << errorMsg;
+        emit trackingError(errorMsg);
+        reply->deleteLater();
         return QString();
     }
 
