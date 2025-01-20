@@ -34,18 +34,34 @@ void ShippoClient::trackPackage(const QString& trackingNumber)
     QJsonDocument doc(postData);
     QByteArray jsonData = doc.toJson();
     qDebug() << "POST data:" << QString(jsonData);
+    qDebug() << "Headers:";
+    qDebug() << "Authorization:" << request.rawHeader("Authorization");
+    qDebug() << "Content-Type:" << request.header(QNetworkRequest::ContentTypeHeader).toString();
     
-    manager->post(request, jsonData);
+    QNetworkReply* reply = manager->post(request, jsonData);
+    connect(reply, &QNetworkReply::sslErrors, this, [](const QList<QSslError> &errors) {
+        for (const QSslError &error : errors) {
+            qDebug() << "SSL Error:" << error.errorString();
+        }
+    });
 }
 
 void ShippoClient::onRequestFinished(QNetworkReply* reply)
 {
+    qDebug() << "Response received:";
+    qDebug() << "Status code:" << reply->attribute(QNetworkRequest::HttpStatusCodeAttribute).toInt();
+    qDebug() << "Content type:" << reply->header(QNetworkRequest::ContentTypeHeader).toString();
+    
     if (reply->error() != QNetworkReply::NoError) {
         QByteArray errorData = reply->readAll();
         QString errorMsg = QString("Network error: %1\nResponse: %2")
                           .arg(reply->errorString())
                           .arg(QString(errorData));
         qDebug() << "API Error:" << errorMsg;
+        qDebug() << "Full response headers:";
+        for (const QByteArray &header : reply->rawHeaderList()) {
+            qDebug() << header << ":" << reply->rawHeader(header);
+        }
         emit trackingError(errorMsg);
         reply->deleteLater();
         return;
