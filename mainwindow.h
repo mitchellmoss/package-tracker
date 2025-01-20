@@ -57,6 +57,7 @@ private slots:
     void showPackageDetails(const QString& trackingNumber);
     void setupTrayIcon();
     void updatePackageStatus(const QString& trackingNumber, const QString& status);
+    void showNotification(const QString& title, const QString& message);
 
 private:
     void setupUI();

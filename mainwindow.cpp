@@ -242,10 +242,13 @@ MainWindow::MainWindow(QWidget *parent)
     setupTrayIcon();
     loadPackages();
     
-    // Auto-refresh every 15 minutes
+    // Auto-refresh every 5 minutes
     QTimer* refreshTimer = new QTimer(this);
     connect(refreshTimer, &QTimer::timeout, this, &MainWindow::refreshPackages);
-    refreshTimer->start(15 * 60 * 1000);
+    refreshTimer->start(5 * 60 * 1000);  // 5 minutes in milliseconds
+    
+    // Initial refresh
+    QTimer::singleShot(1000, this, &MainWindow::refreshPackages);
 }
 
 MainWindow::~MainWindow()
@@ -501,14 +504,26 @@ void MainWindow::showPackageDetails(QListWidgetItem *item)
 
 void MainWindow::updatePackageStatus(const QString& trackingNumber, const QString& status)
 {
+    QString oldStatus;
+    
     // Find and update the list item
     for (int i = 0; i < packageList->count(); ++i) {
         QListWidgetItem* item = packageList->item(i);
         if (item->text() == trackingNumber) {
+            oldStatus = item->data(Qt::UserRole).toString();
             item->setData(Qt::UserRole, status);
             packageList->update(packageList->indexFromItem(item));
             break;
         }
+    }
+    
+    // Show notification if status changed
+    if (!oldStatus.isEmpty() && oldStatus != status) {
+        QString notificationMsg = QString("Package %1 status changed from %2 to %3")
+            .arg(trackingNumber)
+            .arg(oldStatus)
+            .arg(status);
+        showNotification("Package Status Update", notificationMsg);
     }
 }
 
@@ -599,6 +614,13 @@ void MainWindow::loadPackages()
     packageList->addItems(packages);
 }
 
+void MainWindow::showNotification(const QString& title, const QString& message)
+{
+    if (trayIcon && QSystemTrayIcon::supportsMessages()) {
+        trayIcon->showMessage(title, message, QSystemTrayIcon::Information, 5000);
+    }
+}
+
 void MainWindow::handleWebhookEvent(const QString& event, const QJsonObject& data)
 {
     qDebug() << "Received webhook event:" << event;
@@ -607,9 +629,19 @@ void MainWindow::handleWebhookEvent(const QString& event, const QJsonObject& dat
     // Handle different event types
     if (event == "track_updated") {
         QString trackingNumber = data["tracking_number"].toString();
-        QString status = data["tracking_status"].toObject()["status"].toString();
+        QJsonObject trackingStatus = data["tracking_status"].toObject();
+        QString status = trackingStatus["status"].toString();
+        QString details = trackingStatus["status_details"].toString();
+        
         updatePackageStatus(trackingNumber, status);
         showPackageDetails(trackingNumber);
+        
+        // Show notification for status changes
+        QString notificationMsg = QString("Package %1: %2\n%3")
+            .arg(trackingNumber)
+            .arg(status)
+            .arg(details);
+        showNotification("Package Update", notificationMsg);
     }
 }
 
