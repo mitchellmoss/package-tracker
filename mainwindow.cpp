@@ -362,7 +362,7 @@ void MainWindow::setupUI()
     // Input area
     QHBoxLayout *inputLayout = new QHBoxLayout();
     trackingInput = new QLineEdit(this);
-    trackingInput->setPlaceholderText("Enter tracking number (e.g. SHIPPO_TRANSIT, SHIPPO_DELIVERED)...");
+    trackingInput->setPlaceholderText("Enter test number (SHIPPO_TRANSIT, SHIPPO_DELIVERED, etc) or tracking number...");
     
     addButton = new QPushButton("Add", this);
     removeButton = new QPushButton("Remove", this);
@@ -468,11 +468,28 @@ void MainWindow::refreshPackages()
 
 QString MainWindow::detectCarrier(const QString& trackingNumber)
 {
-    // Use Shippo test tracking numbers
+    static const QStringList validTestNumbers = {
+        "SHIPPO_PRE_TRANSIT",
+        "SHIPPO_TRANSIT",
+        "SHIPPO_DELIVERED",
+        "SHIPPO_RETURNED", 
+        "SHIPPO_FAILURE",
+        "SHIPPO_UNKNOWN"
+    };
+    
+    // Validate test tracking numbers
     if (trackingNumber.startsWith("SHIPPO_")) {
+        if (!validTestNumbers.contains(trackingNumber)) {
+            QMessageBox::warning(nullptr, "Invalid Test Number",
+                "Valid test numbers are: SHIPPO_PRE_TRANSIT, SHIPPO_TRANSIT, "
+                "SHIPPO_DELIVERED, SHIPPO_RETURNED, SHIPPO_FAILURE, SHIPPO_UNKNOWN");
+            return QString();
+        }
         return "shippo";
     }
-    return "unknown";
+    
+    // For now, assume all other numbers are shippo
+    return "shippo";
 }
 
 void MainWindow::showPackageDetails(QListWidgetItem *item)
