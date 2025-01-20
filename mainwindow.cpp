@@ -316,7 +316,7 @@ void PackageItemDelegate::paint(QPainter* painter, const QStyleOptionViewItem& o
     initStyleOption(&opt, index);
     
     // Get the status and note from the item's data
-    QString status = index.data(Qt::UserRole).toString();
+    QString status = index.data(Qt::UserRole).toString().toUpper();
     QString note = index.data(Qt::UserRole + 1).toString();
     
     // Draw the background
