@@ -60,10 +60,12 @@ class ShippoClient : public QObject
 public:
     explicit ShippoClient(const QString& apiToken, QObject *parent = nullptr);
     void trackPackage(const QString& trackingNumber);
+    void handleWebhookEvent(const QJsonObject& webhookData);
     
 signals:
     void trackingInfoReceived(const QJsonObject& info);
     void trackingError(const QString& error);
+    void webhookReceived(const QString& event, const QJsonObject& data);
     
 private slots:
     void onRequestFinished(QNetworkReply* reply);

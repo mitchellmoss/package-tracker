@@ -15,11 +15,15 @@ SettingsDialog::SettingsDialog(QWidget *parent)
     QFormLayout* formLayout = new QFormLayout();
     
     shippoTokenInput = new QLineEdit(this);
+    webhookUrlInput = new QLineEdit(this);
     formLayout->addRow("Shippo API Token:", shippoTokenInput);
+    formLayout->addRow("Webhook URL:", webhookUrlInput);
     
     QPushButton* saveButton = new QPushButton("Save", this);
     connect(saveButton, &QPushButton::clicked, this, [this, parent]() {
         QString shippoToken = shippoTokenInput->text().trimmed();
+        QString webhookUrl = webhookUrlInput->text().trimmed();
+        
         if (shippoToken.isEmpty()) {
             QMessageBox::warning(this, "Invalid Credentials", 
                 "Shippo API token must be provided");
@@ -28,6 +32,7 @@ SettingsDialog::SettingsDialog(QWidget *parent)
         
         QSettings settings;
         settings.setValue("shippoToken", shippoToken);
+        settings.setValue("webhookUrl", webhookUrl);
 
         // Update client with new credentials
         MainWindow* mainWindow = qobject_cast<MainWindow*>(parent);
@@ -41,6 +46,7 @@ SettingsDialog::SettingsDialog(QWidget *parent)
     // Load existing values
     QSettings settings;
     shippoTokenInput->setText(settings.value("shippoToken").toString());
+    webhookUrlInput->setText(settings.value("webhookUrl").toString());
     
     mainLayout->addLayout(formLayout);
     mainLayout->addWidget(saveButton);

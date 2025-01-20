@@ -46,6 +46,20 @@ void ShippoClient::trackPackage(const QString& trackingNumber)
     });
 }
 
+void ShippoClient::handleWebhookEvent(const QJsonObject& webhookData) 
+{
+    QString event = webhookData["event"].toString();
+    QJsonObject data = webhookData["data"].toObject();
+    
+    if (event == "track_updated") {
+        // Process tracking update
+        emit trackingInfoReceived(data);
+    }
+    
+    // Emit the raw webhook data for other handlers
+    emit webhookReceived(event, data);
+}
+
 void ShippoClient::onRequestFinished(QNetworkReply* reply)
 {
     qDebug() << "Response received:";

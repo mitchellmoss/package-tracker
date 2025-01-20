@@ -63,7 +63,8 @@ private:
     void loadPackages();
     void savePackages();
 public:
-    void updateApiClients(const QString& shippoToken);
+    void updateApiClients(const QString& shippoToken); 
+    void handleWebhookEvent(const QString& event, const QJsonObject& data);
     QString detectCarrier(const QString& trackingNumber);
     
     QListWidget *packageList;

@@ -234,6 +234,8 @@ MainWindow::MainWindow(QWidget *parent)
         connect(shippoClient, &ShippoClient::trackingError, this, [this](const QString& error) {
             QMessageBox::warning(this, "Tracking Error", error);
         });
+        
+        connect(shippoClient, &ShippoClient::webhookReceived, this, &MainWindow::handleWebhookEvent);
     }
 
     setupUI();
@@ -595,6 +597,20 @@ void MainWindow::loadPackages()
 {
     QStringList packages = settings.value("trackingNumbers").toStringList();
     packageList->addItems(packages);
+}
+
+void MainWindow::handleWebhookEvent(const QString& event, const QJsonObject& data)
+{
+    qDebug() << "Received webhook event:" << event;
+    qDebug() << "Webhook data:" << data;
+    
+    // Handle different event types
+    if (event == "track_updated") {
+        QString trackingNumber = data["tracking_number"].toString();
+        QString status = data["tracking_status"].toObject()["status"].toString();
+        updatePackageStatus(trackingNumber, status);
+        showPackageDetails(trackingNumber);
+    }
 }
 
 void MainWindow::updateApiClients(const QString& shippoToken)
