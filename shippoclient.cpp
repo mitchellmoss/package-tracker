@@ -18,8 +18,8 @@ void ShippoClient::trackPackage(const QString& trackingNumber)
     QUrl url("https://api.goshippo.com/tracks/");
     QNetworkRequest request(url);
     
-    QString authHeader = QString("ShippoToken %1").arg(apiToken);
-    request.setRawHeader("Authorization", authHeader.toLatin1());
+    // Fix auth header format per Shippo API docs
+    request.setRawHeader("Authorization", QString("ShippoToken %1").arg(apiToken).toUtf8());
     request.setHeader(QNetworkRequest::ContentTypeHeader, "application/json");
     
     qDebug() << "Tracking package:" << trackingNumber;
