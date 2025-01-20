@@ -23,7 +23,7 @@ void FedExClient::trackPackage(const QString& trackingNumber)
         return;
     }
 
-    QUrl url("https://apis.fedex.com/track/v1/trackingnumbers");
+    QUrl url("https://apis-sandbox.fedex.com/track/v1/trackingnumbers");
     QNetworkRequest request(url);
     request.setRawHeader("Authorization", ("Bearer " + token).toUtf8());
     request.setHeader(QNetworkRequest::ContentTypeHeader, "application/json");
@@ -70,7 +70,7 @@ void FedExClient::trackPackage(const QString& trackingNumber)
 
 QString FedExClient::getAuthToken()
 {
-    QUrl url("https://apis.fedex.com/oauth/token");
+    QUrl url("https://apis-sandbox.fedex.com/oauth/token");
     QNetworkRequest request(url);
     
     // Set required headers
