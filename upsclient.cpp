@@ -27,7 +27,7 @@ void UPSClient::trackPackage(const QString& trackingNumber)
     }
 
     // Construct tracking URL with proper parameters
-    QUrl url("https://wwwcie.ups.com/api/track/v1/details/" + trackingNumber + "?locale=en_US");
+    QUrl url("https://onlinetools.ups.com/api/track/v1/details/" + trackingNumber + "?locale=en_US");
 
     // Set up request with required headers
     QNetworkRequest request(url);
