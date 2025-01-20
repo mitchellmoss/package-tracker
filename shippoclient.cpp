@@ -72,10 +72,41 @@ void ShippoClient::onRequestFinished(QNetworkReply* reply)
     // Map Shippo tracking data to our internal format
     result["trackingNumber"] = response["tracking_number"].toString();
     result["carrier"] = response["carrier"].toString();
-    result["status"] = response["tracking_status"].toObject()["status"].toString();
+    
+    // Get tracking status
+    QJsonObject trackingStatus = response["tracking_status"].toObject();
+    result["status"] = trackingStatus["status"].toString();
+    
+    // Include substatus if available
+    if (!trackingStatus["substatus"].isNull()) {
+        result["substatus"] = trackingStatus["substatus"].toString();
+    }
     
     if (response.contains("eta")) {
         result["estimatedDelivery"] = response["eta"].toString();
+    }
+
+    // Add service level information if available
+    if (response.contains("servicelevel")) {
+        QJsonObject serviceLevel = response["servicelevel"].toObject();
+        result["service"] = serviceLevel["name"].toString();
+    }
+
+    // Add address information
+    if (response.contains("address_from")) {
+        QJsonObject fromAddr = response["address_from"].toObject();
+        result["fromLocation"] = QString("%1, %2 %3")
+            .arg(fromAddr["city"].toString())
+            .arg(fromAddr["state"].toString())
+            .arg(fromAddr["zip"].toString());
+    }
+    
+    if (response.contains("address_to")) {
+        QJsonObject toAddr = response["address_to"].toObject();
+        result["toLocation"] = QString("%1, %2 %3")
+            .arg(toAddr["city"].toString())
+            .arg(toAddr["state"].toString())
+            .arg(toAddr["zip"].toString());
     }
 
     // Convert tracking history
@@ -83,12 +114,22 @@ void ShippoClient::onRequestFinished(QNetworkReply* reply)
     QJsonArray trackingHistory = response["tracking_history"].toArray();
     for (const QJsonValue& event : trackingHistory) {
         QJsonObject trackEvent = event.toObject();
-        events.append(QJsonObject{
-            {"timestamp", trackEvent["status_date"].toString()},
-            {"description", trackEvent["status_details"].toString()},
-            {"location", trackEvent["location"].toObject()["city"].toString() + 
-                        ", " + trackEvent["location"].toObject()["state"].toString()}
-        });
+        QJsonObject location = trackEvent["location"].toObject();
+        
+        QJsonObject eventObj;
+        eventObj["timestamp"] = trackEvent["status_date"].toString();
+        eventObj["status"] = trackEvent["status"].toString();
+        eventObj["description"] = trackEvent["status_details"].toString();
+        eventObj["location"] = QString("%1, %2 %3")
+            .arg(location["city"].toString())
+            .arg(location["state"].toString())
+            .arg(location["zip"].toString());
+            
+        if (!trackEvent["substatus"].isNull()) {
+            eventObj["substatus"] = trackEvent["substatus"].toString();
+        }
+        
+        events.append(eventObj);
     }
     result["events"] = events;
 
