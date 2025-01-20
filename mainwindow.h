@@ -73,11 +73,13 @@ public:
     QPushButton *removeButton;
     QPushButton *refreshButton;
     QLineEdit *trackingInput;
+    QLineEdit *noteInput;
     QTextEdit *detailsView;
     
     QSettings settings;
     ShippoClient* shippoClient = nullptr;
     QMap<QString, QJsonObject> packageDetails;
+    QMap<QString, QString> packageNotes;
     QSystemTrayIcon* trayIcon;
     SettingsDialog* settingsDialog;
     QWidget* container;

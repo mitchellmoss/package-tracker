@@ -348,11 +348,24 @@ void PackageItemDelegate::paint(QPainter* painter, const QStyleOptionViewItem& o
     painter->drawEllipse(iconRect);
     painter->restore();
     
-    // Draw the text
+    // Draw the tracking number
     QRect textRect = rect;
     textRect.setLeft(iconRect.right() + padding * 2);
-    QString text = index.data(Qt::DisplayRole).toString();
-    painter->drawText(textRect, Qt::AlignVCenter, text);
+    QString trackingNumber = index.data(Qt::DisplayRole).toString();
+    painter->drawText(textRect, Qt::AlignVCenter, trackingNumber);
+    
+    // Draw the note if it exists
+    if (!note.isEmpty()) {
+        QFont italicFont = painter->font();
+        italicFont.setItalic(true);
+        painter->save();
+        painter->setFont(italicFont);
+        painter->setPen(QColor("#666666"));
+        QRect noteRect = rect;
+        noteRect.setLeft(textRect.left() + painter->fontMetrics().horizontalAdvance(trackingNumber) + padding * 4);
+        painter->drawText(noteRect, Qt::AlignVCenter, "- " + note);
+        painter->restore();
+    }
 }
 
 QSize PackageItemDelegate::sizeHint(const QStyleOptionViewItem& option, const QModelIndex& index) const
@@ -369,11 +382,15 @@ void MainWindow::setupUI()
     trackingInput = new QLineEdit(this);
     trackingInput->setPlaceholderText("Enter test number (SHIPPO_TRANSIT, SHIPPO_DELIVERED, etc) or tracking number...");
     
+    noteInput = new QLineEdit(this);
+    noteInput->setPlaceholderText("Add a note (optional)...");
+    
     addButton = new QPushButton("Add", this);
     removeButton = new QPushButton("Remove", this);
     refreshButton = new QPushButton("Refresh All", this);
     
     inputLayout->addWidget(trackingInput);
+    inputLayout->addWidget(noteInput);
     inputLayout->addWidget(addButton);
     inputLayout->addWidget(removeButton);
     inputLayout->addWidget(refreshButton);
@@ -439,11 +456,20 @@ void MainWindow::setupUI()
 void MainWindow::addPackage()
 {
     QString trackingNumber = trackingInput->text().trimmed();
+    QString note = noteInput->text().trimmed();
+    
     if (!trackingNumber.isEmpty()) {
         QListWidgetItem* item = new QListWidgetItem(trackingNumber);
-        item->setData(Qt::UserRole, "Pending");
+        item->setData(Qt::UserRole, "UNKNOWN");
+        item->setData(Qt::UserRole + 1, note);
         packageList->addItem(item);
+        
+        if (!note.isEmpty()) {
+            packageNotes[trackingNumber] = note;
+        }
+        
         trackingInput->clear();
+        noteInput->clear();
         savePackages();
     }
 }
@@ -611,7 +637,20 @@ void MainWindow::showPackageDetails(const QString& trackingNumber)
 void MainWindow::loadPackages()
 {
     QStringList packages = settings.value("trackingNumbers").toStringList();
-    packageList->addItems(packages);
+    QMap<QString, QVariant> notes = settings.value("packageNotes").toMap();
+    
+    for (const QString& trackingNumber : packages) {
+        QListWidgetItem* item = new QListWidgetItem(trackingNumber);
+        item->setData(Qt::UserRole, "UNKNOWN");
+        
+        if (notes.contains(trackingNumber)) {
+            QString note = notes[trackingNumber].toString();
+            item->setData(Qt::UserRole + 1, note);
+            packageNotes[trackingNumber] = note;
+        }
+        
+        packageList->addItem(item);
+    }
 }
 
 void MainWindow::showNotification(const QString& title, const QString& message)
@@ -668,8 +707,19 @@ void MainWindow::updateApiClients(const QString& shippoToken)
 void MainWindow::savePackages()
 {
     QStringList packages;
+    QMap<QString, QVariant> notes;
+    
     for (int i = 0; i < packageList->count(); ++i) {
-        packages << packageList->item(i)->text();
+        QListWidgetItem* item = packageList->item(i);
+        QString trackingNumber = item->text();
+        packages << trackingNumber;
+        
+        QString note = item->data(Qt::UserRole + 1).toString();
+        if (!note.isEmpty()) {
+            notes[trackingNumber] = note;
+        }
     }
+    
     settings.setValue("trackingNumbers", packages);
+    settings.setValue("packageNotes", notes);
 }
