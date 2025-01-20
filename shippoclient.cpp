@@ -18,7 +18,7 @@ void ShippoClient::trackPackage(const QString& trackingNumber)
     QUrl url(QString("https://api.goshippo.com/tracks/%1").arg(trackingNumber));
     QNetworkRequest request(url);
     
-    request.setRawHeader("Authorization", QString("ShippoToken %1").arg(apiToken).toUtf8());
+    request.setRawHeader("Authorization", QString("ShippoToken %1").arg(apiToken).toLatin1());
     request.setHeader(QNetworkRequest::ContentTypeHeader, "application/json");
     
     qDebug() << "Tracking package:" << trackingNumber;
@@ -28,7 +28,12 @@ void ShippoClient::trackPackage(const QString& trackingNumber)
 void ShippoClient::onRequestFinished(QNetworkReply* reply)
 {
     if (reply->error() != QNetworkReply::NoError) {
-        emit trackingError(reply->errorString());
+        QByteArray errorData = reply->readAll();
+        QString errorMsg = QString("Network error: %1\nResponse: %2")
+                          .arg(reply->errorString())
+                          .arg(QString(errorData));
+        qDebug() << "API Error:" << errorMsg;
+        emit trackingError(errorMsg);
         reply->deleteLater();
         return;
     }
