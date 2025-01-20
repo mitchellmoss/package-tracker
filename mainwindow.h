@@ -53,6 +53,7 @@ private slots:
     void showPackageDetails(QListWidgetItem* item);
     void showPackageDetails(const QString& trackingNumber);
     void setupTrayIcon();
+    void updatePackageStatus(const QString& trackingNumber, const QString& status);
 
 private:
     void setupUI();

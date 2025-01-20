@@ -1,2 +1,5 @@
 <RCC>
+    <qresource prefix="/">
+        <!-- Add resources here when needed -->
+    </qresource>
 </RCC>
