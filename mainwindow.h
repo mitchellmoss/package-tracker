@@ -63,8 +63,7 @@ private:
     void loadPackages();
     void savePackages();
 public:
-    void updateApiClients(const QString& fedexKey, const QString& fedexSecret, 
-                         const QString& upsId, const QString& upsSecret);
+    void updateApiClients(const QString& shippoToken);
     QString detectCarrier(const QString& trackingNumber);
     
     QListWidget *packageList;

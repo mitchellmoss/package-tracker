@@ -387,18 +387,14 @@ void MainWindow::setupUI()
     settingsMenu->addAction("API Credentials", this, [this]() {
         SettingsDialog* dialog = new SettingsDialog(this);
         connect(dialog, &SettingsDialog::accepted, this, [this, dialog]() {
-            QString fedexKey = dialog->fedexKeyInput->text();
-            QString fedexSecret = dialog->fedexSecretInput->text();
-            QString upsId = dialog->upsIdInput->text();
-            QString upsSecret = dialog->upsSecretInput->text();
-            if (fedexKey.isEmpty() || fedexSecret.isEmpty() || 
-                upsId.isEmpty() || upsSecret.isEmpty()) {
+            QString shippoToken = dialog->shippoTokenInput->text();
+            if (shippoToken.isEmpty()) {
                 QMessageBox::warning(this, "Invalid Credentials", 
-                    "All API credentials must be filled out");
+                    "Shippo API token must be provided");
                 return;
             }
         
-            updateApiClients(fedexKey, fedexSecret, upsId, upsSecret);
+            updateApiClients(shippoToken);
         });
         dialog->exec();
     });
@@ -462,10 +458,8 @@ void MainWindow::refreshPackages()
         QString trackingNumber = packageList->item(i)->text();
         QString carrier = detectCarrier(trackingNumber);
         
-        if (carrier == "UPS") {
-            upsClient->trackPackage(trackingNumber);
-        } else if (carrier == "FedEx") {
-            fedexClient->trackPackage(trackingNumber);
+        if (shippoClient) {
+            shippoClient->trackPackage(trackingNumber);
         } else {
             qDebug() << "Unknown carrier for tracking number:" << trackingNumber;
         }
@@ -578,10 +572,8 @@ void MainWindow::showPackageDetails(const QString& trackingNumber)
         detailsView->setText("Loading details for: " + trackingNumber);
         
         QString carrier = detectCarrier(trackingNumber);
-        if (carrier == "UPS") {
-            upsClient->trackPackage(trackingNumber);
-        } else if (carrier == "FedEx") {
-            fedexClient->trackPackage(trackingNumber);
+        if (shippoClient) {
+            shippoClient->trackPackage(trackingNumber);
         } else {
             detailsView->setText("Unknown carrier for tracking number: " + trackingNumber);
         }
