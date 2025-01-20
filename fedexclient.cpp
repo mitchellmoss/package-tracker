@@ -37,14 +37,19 @@ void FedExClient::trackPackage(const QString& trackingNumber)
     QJsonArray trackingInfo;
     QJsonObject trackingNumberInfo;
     trackingNumberInfo["trackingNumber"] = trackingNumber;
-    trackingNumberInfo["carrierCode"] = "FDXE"; // FedEx Express
-    trackingNumberInfo["shipDateBegin"] = QDate::currentDate().addDays(-45).toString("yyyy-MM-dd");
+    trackingNumberInfo["carrierCode"] = "FDXG"; // Try FedEx Ground instead of Express
+    // Use a shorter date range
+    trackingNumberInfo["shipDateBegin"] = QDate::currentDate().addDays(-7).toString("yyyy-MM-dd");
     trackingNumberInfo["shipDateEnd"] = QDate::currentDate().toString("yyyy-MM-dd");
     trackingInfo.append(trackingNumberInfo);
 
     QJsonObject payload;
     payload["includeDetailedScans"] = true;
     payload["trackingInfo"] = trackingInfo;
+
+    // Add additional required headers
+    request.setRawHeader("x-locale", "en_US");
+    request.setRawHeader("x-version", "1");
 
     QByteArray jsonData = QJsonDocument(payload).toJson();
     
