@@ -10,9 +10,6 @@ class SettingsDialog : public QDialog
 
 public:
     explicit SettingsDialog(QWidget *parent = nullptr);
-
-public:
-    explicit SettingsDialog(QWidget *parent = nullptr);
     QLineEdit* shippoTokenInput;
     
 private:
