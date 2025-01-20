@@ -4,8 +4,8 @@ TARGET = PackageTracker
 QT += core gui widgets network
 CONFIG += ssl
 
-# Add Shippo package
-INCLUDEPATH += $$system(dotnet list package | grep Shippo | cut -d' ' -f1)
+# Network configuration for Shippo API
+DEFINES += SHIPPO_API_BASE_URL=\\\"https://api.goshippo.com\\\"
 
 SOURCES += main.cpp \
            mainwindow.cpp \

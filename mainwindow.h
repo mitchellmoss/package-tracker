@@ -17,8 +17,7 @@
 #include <QToolButton>
 #include <QMouseEvent>
 #include <QStyledItemDelegate>
-#include "fedexclient.h"
-#include "upsclient.h"
+#include "shippoclient.h"
 #include "settingsdialog.h"
 
 class FrostedGlassEffect : public QGraphicsEffect
@@ -72,8 +71,7 @@ public:
     QTextEdit *detailsView;
     
     QSettings settings;
-    FedExClient* fedexClient;
-    UPSClient* upsClient;
+    ShippoClient* shippoClient;
     QMap<QString, QJsonObject> packageDetails;
     QSystemTrayIcon* trayIcon;
     SettingsDialog* settingsDialog;
