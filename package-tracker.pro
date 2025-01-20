@@ -1,8 +1,11 @@
 TEMPLATE = app
 TARGET = PackageTracker
 
-QT += core gui widgets network
-CONFIG += ssl
+QT       += core gui widgets network
+CONFIG   += c++17
+
+# Use Qt's built-in module paths
+QMAKE_MAC_SDK = macosx
 
 # Network configuration for Shippo API
 DEFINES += SHIPPO_API_BASE_URL=\\\"https://api.goshippo.com\\\"
@@ -25,8 +28,10 @@ QMAKE_APPLE_DEVICE_ARCHS = arm64
 
 # Qt configuration for Homebrew
 QT_PREFIX = $$system(brew --prefix qt)
-INCLUDEPATH += $$QT_PREFIX/include
-LIBS += -L$$QT_PREFIX/lib
+INCLUDEPATH += $$QT_PREFIX/lib/QtCore.framework/Headers
+INCLUDEPATH += $$QT_PREFIX/lib/QtGui.framework/Headers
+INCLUDEPATH += $$QT_PREFIX/lib/QtWidgets.framework/Headers
+LIBS += -F$$QT_PREFIX/lib
 
 # Silence SDK version warning
 CONFIG += sdk_no_version_check

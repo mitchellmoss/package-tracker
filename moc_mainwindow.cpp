@@ -184,9 +184,13 @@ constexpr auto qt_meta_stringdata_CLASSMainWindowENDCLASS = QtMocHelpers::string
     "setupTrayIcon",
     "updatePackageStatus",
     "status",
+    "notify",
     "showNotification",
     "title",
-    "message"
+    "message",
+    "retryFailedUpdates",
+    "processUpdateQueue",
+    "connectShippoSignals"
 );
 #else  // !QT_MOC_HAS_STRINGDATA
 #error "qtmochelpers.h not found or too old."
@@ -199,7 +203,7 @@ Q_CONSTINIT static const uint qt_meta_data_CLASSMainWindowENDCLASS[] = {
       12,       // revision
        0,       // classname
        0,    0, // classinfo
-       9,   14, // methods
+      13,   14, // methods
        0,    0, // properties
        0,    0, // enums/sets
        0,    0, // constructors
@@ -207,15 +211,19 @@ Q_CONSTINIT static const uint qt_meta_data_CLASSMainWindowENDCLASS[] = {
        0,       // signalCount
 
  // slots: name, argc, parameters, tag, flags, initial metatype offsets
-       1,    0,   68,    2, 0x08,    1 /* Private */,
-       3,    0,   69,    2, 0x08,    2 /* Private */,
-       4,    0,   70,    2, 0x08,    3 /* Private */,
-       5,    0,   71,    2, 0x08,    4 /* Private */,
-       6,    1,   72,    2, 0x08,    5 /* Private */,
-       6,    1,   75,    2, 0x08,    7 /* Private */,
-      10,    0,   78,    2, 0x08,    9 /* Private */,
-      11,    2,   79,    2, 0x08,   10 /* Private */,
-      13,    2,   84,    2, 0x08,   13 /* Private */,
+       1,    0,   92,    2, 0x08,    1 /* Private */,
+       3,    0,   93,    2, 0x08,    2 /* Private */,
+       4,    0,   94,    2, 0x08,    3 /* Private */,
+       5,    0,   95,    2, 0x08,    4 /* Private */,
+       6,    1,   96,    2, 0x08,    5 /* Private */,
+       6,    1,   99,    2, 0x08,    7 /* Private */,
+      10,    0,  102,    2, 0x08,    9 /* Private */,
+      11,    3,  103,    2, 0x08,   10 /* Private */,
+      11,    2,  110,    2, 0x28,   14 /* Private | MethodCloned */,
+      14,    2,  115,    2, 0x08,   17 /* Private */,
+      17,    0,  120,    2, 0x08,   20 /* Private */,
+      18,    0,  121,    2, 0x08,   21 /* Private */,
+      19,    0,  122,    2, 0x08,   22 /* Private */,
 
  // slots: parameters
     QMetaType::Void,
@@ -225,8 +233,12 @@ Q_CONSTINIT static const uint qt_meta_data_CLASSMainWindowENDCLASS[] = {
     QMetaType::Void, 0x80000000 | 7,    8,
     QMetaType::Void, QMetaType::QString,    9,
     QMetaType::Void,
+    QMetaType::Void, QMetaType::QString, QMetaType::QString, QMetaType::Bool,    9,   12,   13,
     QMetaType::Void, QMetaType::QString, QMetaType::QString,    9,   12,
-    QMetaType::Void, QMetaType::QString, QMetaType::QString,   14,   15,
+    QMetaType::Void, QMetaType::QString, QMetaType::QString,   15,   16,
+    QMetaType::Void,
+    QMetaType::Void,
+    QMetaType::Void,
 
        0        // eod
 };
@@ -260,10 +272,21 @@ Q_CONSTINIT const QMetaObject MainWindow::staticMetaObject = { {
         QtPrivate::TypeAndForceComplete<void, std::false_type>,
         QtPrivate::TypeAndForceComplete<const QString &, std::false_type>,
         QtPrivate::TypeAndForceComplete<const QString &, std::false_type>,
+        QtPrivate::TypeAndForceComplete<bool, std::false_type>,
+        // method 'updatePackageStatus'
+        QtPrivate::TypeAndForceComplete<void, std::false_type>,
+        QtPrivate::TypeAndForceComplete<const QString &, std::false_type>,
+        QtPrivate::TypeAndForceComplete<const QString &, std::false_type>,
         // method 'showNotification'
         QtPrivate::TypeAndForceComplete<void, std::false_type>,
         QtPrivate::TypeAndForceComplete<const QString &, std::false_type>,
-        QtPrivate::TypeAndForceComplete<const QString &, std::false_type>
+        QtPrivate::TypeAndForceComplete<const QString &, std::false_type>,
+        // method 'retryFailedUpdates'
+        QtPrivate::TypeAndForceComplete<void, std::false_type>,
+        // method 'processUpdateQueue'
+        QtPrivate::TypeAndForceComplete<void, std::false_type>,
+        // method 'connectShippoSignals'
+        QtPrivate::TypeAndForceComplete<void, std::false_type>
     >,
     nullptr
 } };
@@ -281,8 +304,12 @@ void MainWindow::qt_static_metacall(QObject *_o, QMetaObject::Call _c, int _id, 
         case 4: _t->showPackageDetails((*reinterpret_cast< std::add_pointer_t<QListWidgetItem*>>(_a[1]))); break;
         case 5: _t->showPackageDetails((*reinterpret_cast< std::add_pointer_t<QString>>(_a[1]))); break;
         case 6: _t->setupTrayIcon(); break;
-        case 7: _t->updatePackageStatus((*reinterpret_cast< std::add_pointer_t<QString>>(_a[1])),(*reinterpret_cast< std::add_pointer_t<QString>>(_a[2]))); break;
-        case 8: _t->showNotification((*reinterpret_cast< std::add_pointer_t<QString>>(_a[1])),(*reinterpret_cast< std::add_pointer_t<QString>>(_a[2]))); break;
+        case 7: _t->updatePackageStatus((*reinterpret_cast< std::add_pointer_t<QString>>(_a[1])),(*reinterpret_cast< std::add_pointer_t<QString>>(_a[2])),(*reinterpret_cast< std::add_pointer_t<bool>>(_a[3]))); break;
+        case 8: _t->updatePackageStatus((*reinterpret_cast< std::add_pointer_t<QString>>(_a[1])),(*reinterpret_cast< std::add_pointer_t<QString>>(_a[2]))); break;
+        case 9: _t->showNotification((*reinterpret_cast< std::add_pointer_t<QString>>(_a[1])),(*reinterpret_cast< std::add_pointer_t<QString>>(_a[2]))); break;
+        case 10: _t->retryFailedUpdates(); break;
+        case 11: _t->processUpdateQueue(); break;
+        case 12: _t->connectShippoSignals(); break;
         default: ;
         }
     }
@@ -307,13 +334,13 @@ int MainWindow::qt_metacall(QMetaObject::Call _c, int _id, void **_a)
     if (_id < 0)
         return _id;
     if (_c == QMetaObject::InvokeMetaMethod) {
-        if (_id < 9)
+        if (_id < 13)
             qt_static_metacall(this, _c, _id, _a);
-        _id -= 9;
+        _id -= 13;
     } else if (_c == QMetaObject::RegisterMethodArgumentMetaType) {
-        if (_id < 9)
+        if (_id < 13)
             *reinterpret_cast<QMetaType *>(_a[0]) = QMetaType();
-        _id -= 9;
+        _id -= 13;
     }
     return _id;
 }

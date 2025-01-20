@@ -7,7 +7,7 @@
 #include <QInputDialog>
 #include <QGraphicsBlurEffect>
 #include <QGraphicsPixmapItem>
-#include <QGraphicsScene>  // Add this include
+#include <QGraphicsScene>
 #include <QScreen>
 #include <QWindow>
 #include <QFile>
@@ -18,8 +18,12 @@
 #include <QAction>
 #include <QIcon>
 #include <QTimer>
-#include <QLabel>  // Add this include for QLabel
+#include <QLabel>
+#include <QDateTime>
+#include <QGraphicsDropShadowEffect>
+#include <QToolButton>
 
+// Implementation of FrostedGlassEffect
 void FrostedGlassEffect::draw(QPainter* painter)
 {
     QPoint offset;
@@ -35,248 +39,340 @@ void FrostedGlassEffect::draw(QPainter* painter)
     tempPainter.fillRect(temp.rect(), QColor(255, 255, 255, 180));
     tempPainter.end();
     
-    QGraphicsBlurEffect* blur = new QGraphicsBlurEffect;
+    auto blur = std::make_unique<QGraphicsBlurEffect>();
     blur->setBlurRadius(10);
     
     QGraphicsScene scene;
     QGraphicsPixmapItem item;
     item.setPixmap(QPixmap::fromImage(temp));
-    item.setGraphicsEffect(blur);
+    item.setGraphicsEffect(blur.get());
     scene.addItem(&item);
     
     scene.render(painter, QRectF(), QRectF(-offset.x(), -offset.y(), pixmap.width(), pixmap.height()));
 }
 
-MainWindow::MainWindow(QWidget *parent)
-    : QMainWindow(parent), mousePressed(false)
+// Implementation of PackageItemDelegate
+PackageItemDelegate::PackageItemDelegate(QObject* parent) : QStyledItemDelegate(parent) {}
+
+void PackageItemDelegate::paint(QPainter* painter, const QStyleOptionViewItem& option, const QModelIndex& index) const
 {
-    // Enable translucent background
+    QStyleOptionViewItem opt = option;
+    initStyleOption(&opt, index);
+    
+    QString status = index.data(Qt::UserRole).toString().toUpper();
+    QString note = index.data(Qt::UserRole + 1).toString();
+    
+    // Draw background
+    QStyle* style = opt.widget ? opt.widget->style() : QApplication::style();
+    style->drawPrimitive(QStyle::PE_PanelItemViewItem, &opt, painter, opt.widget);
+    
+    // Calculate positions
+    QRect rect = opt.rect;
+    int padding = 4;
+    
+    // Status color mapping
+    QColor statusColor = QColor("#95a5a6"); // Default gray
+    QString normalizedStatus = status.toUpper();
+    if (index.data(Qt::DisplayRole).toString().startsWith("SHIPPO_")) {
+        normalizedStatus = index.data(Qt::DisplayRole).toString().split("_")[1];
+    }
+    
+    if (normalizedStatus == "DELIVERED") statusColor = QColor("#27ae60");
+    else if (normalizedStatus == "TRANSIT") statusColor = QColor("#f39c12");
+    else if (normalizedStatus == "PRE_TRANSIT") statusColor = QColor("#3498db");
+    else if (normalizedStatus == "FAILURE") statusColor = QColor("#e74c3c");
+    else if (normalizedStatus == "RETURNED") statusColor = QColor("#9b59b6");
+    
+    // Draw status indicator
+    QRect iconRect = rect;
+    iconRect.setWidth(16);
+    iconRect.setHeight(16);
+    iconRect.moveTop(rect.top() + (rect.height() - iconRect.height()) / 2);
+    iconRect.moveLeft(rect.left() + padding);
+    
+    painter->save();
+    painter->setRenderHint(QPainter::Antialiasing);
+    painter->setPen(Qt::NoPen);
+    painter->setBrush(statusColor);
+    painter->drawEllipse(iconRect);
+    painter->restore();
+    
+    // Draw tracking number
+    QRect textRect = rect;
+    textRect.setLeft(iconRect.right() + padding * 2);
+    QString trackingNumber = index.data(Qt::DisplayRole).toString();
+    painter->drawText(textRect, Qt::AlignVCenter, trackingNumber);
+    
+    // Draw note if present
+    if (!note.isEmpty()) {
+        QFont italicFont = painter->font();
+        italicFont.setItalic(true);
+        painter->save();
+        painter->setFont(italicFont);
+        painter->setPen(QColor("#666666"));
+        QRect noteRect = rect;
+        noteRect.setLeft(textRect.left() + painter->fontMetrics().horizontalAdvance(trackingNumber) + padding * 4);
+        painter->drawText(noteRect, Qt::AlignVCenter, "- " + note);
+        painter->restore();
+    }
+}
+
+QSize PackageItemDelegate::sizeHint(const QStyleOptionViewItem& option, const QModelIndex& index) const
+{
+    QSize size = QStyledItemDelegate::sizeHint(option, index);
+    size.setHeight(size.height() + 8);
+    return size;
+}
+
+// MainWindow implementation
+MainWindow::MainWindow(QWidget *parent)
+    : QMainWindow(parent), mousePressed(false), isProcessingQueue(false)
+{
     setAttribute(Qt::WA_TranslucentBackground);
     setWindowFlags(windowFlags() | Qt::FramelessWindowHint);
     
-    // Create a container widget for the frosted effect
-    container = new QWidget(this);
+    container = std::make_unique<QWidget>(this);
     container->setObjectName("container");
     
-    // Add window controls
-    QHBoxLayout* titleBarLayout = new QHBoxLayout();
-    titleBarLayout->setContentsMargins(10, 5, 10, 5);
-    titleBarLayout->setSpacing(8);
-    
-    // Close button
-    QToolButton* closeButton = new QToolButton(container);
-    closeButton->setObjectName("closeButton");
-    closeButton->setFixedSize(12, 12);
-    closeButton->setStyleSheet(
-        "background-color: #ff5f56;"
-        "border-radius: 6px;"
-        "border: none;"
-        "margin: 0;"
-        "padding: 0;"
-    );
-    
-    // Minimize button
-    QToolButton* minimizeButton = new QToolButton(container);
-    minimizeButton->setObjectName("minimizeButton");
-    minimizeButton->setFixedSize(12, 12);
-    minimizeButton->setStyleSheet(
-        "background-color: #ffbd2e;"
-        "border-radius: 6px;"
-        "border: none;"
-        "margin: 0;"
-        "padding: 0;"
-    );
-    
-    // Maximize button
-    QToolButton* maximizeButton = new QToolButton(container);
-    maximizeButton->setObjectName("maximizeButton");
-    maximizeButton->setFixedSize(12, 12);
-    maximizeButton->setStyleSheet(
-        "background-color: #27c93f;"
-        "border-radius: 6px;"
-        "border: none;"
-        "margin: 0;"
-        "padding: 0;"
-    );
-    
-    // Add buttons to layout
-    titleBarLayout->addWidget(closeButton);
-    titleBarLayout->addWidget(minimizeButton);
-    titleBarLayout->addWidget(maximizeButton);
-    
-    // Add title
-    QLabel* titleLabel = new QLabel("C++ Package Tracker by Mitchell Moss", container);
-    titleLabel->setStyleSheet("color: black; font-weight: bold; margin-left: 10px;");
-    titleBarLayout->addWidget(titleLabel);
-    titleBarLayout->addStretch();
-    
-    connect(closeButton, &QToolButton::clicked, this, &QMainWindow::close);
-    connect(minimizeButton, &QToolButton::clicked, this, &QMainWindow::showMinimized);
-    connect(maximizeButton, &QToolButton::clicked, this, [this]() {
-        if (isMaximized()) {
-            showNormal();
-        } else {
-            showMaximized();
-        }
-    });
-    
-    // Apply frosted glass effect to container
-    FrostedGlassEffect* effect = new FrostedGlassEffect(container);
-    container->setGraphicsEffect(effect);
-    
-    // Main layout for container
-    containerLayout = new QVBoxLayout(container);
-    containerLayout->setContentsMargins(15, 15, 15, 15);
-    containerLayout->setSpacing(10);
-    containerLayout->addLayout(titleBarLayout);
-    
-    // Set window styles
-    setStyleSheet(R"(
-        #container {
-            background-color: rgba(255, 255, 255, 0.98);
-            border-radius: 12px;
-            border: 1px solid rgba(0, 0, 0, 0.1);
-            /* box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1); */
-        }
-        QMainWindow {
-            background-color: transparent;
-        }
-        QListWidget {
-            background-color: white;
-            border-radius: 8px;
-            border: 1px solid rgba(0, 0, 0, 0.08);
-            padding: 5px;
-            color: black;  /* Ensure text color is black */
-        }
-        QListWidget::item {
-            padding: 8px;
-            border-bottom: 1px solid rgba(0, 0, 0, 0.05);
-            color: black;  /* Ensure text color is black */
-        }
-        QListWidget::item:hover {
-            background-color: rgba(0, 0, 0, 0.03);
-        }
-        QListWidget::item:selected {
-            background-color: rgba(0, 120, 212, 0.1);
-            color: black;
-        }
-        QTextEdit {
-            background-color: white;
-            border-radius: 8px;
-            border: 1px solid rgba(0, 0, 0, 0.08);
-            padding: 12px;
-            color: #333;
-            font-size: 13px;
-            line-height: 1.4;
-        }
-        QLineEdit {
-            background-color: rgba(255, 255, 255, 0.9);
-            border-radius: 5px;
-            border: 1px solid rgba(0, 0, 0, 0.1);
-            padding: 5px;
-            color: black;
-        }
-        QPushButton {
-            background-color: rgba(255, 255, 255, 0.9);
-            border-radius: 5px;
-            border: 1px solid rgba(0, 0, 0, 0.1);
-            padding: 5px 10px;
-            min-width: 60px;
-            color: black;
-        }
-        QPushButton:hover {
-            background-color: rgba(240, 240, 240, 1.0);
-            color: black;
-        }
-        QMenuBar {
-            background-color: transparent;
-            border-bottom: 1px solid rgba(200, 200, 200, 0.3);
-        }
-        #closeButton, #minimizeButton, #maximizeButton {
-            border: none;
-            padding: 0;
-            margin: 0 4px;
-            border-radius: 6px;
-            min-width: 12px;
-            min-height: 12px;
-            max-width: 12px;
-            max-height: 12px;
-        }
-        #closeButton:hover { background-color: #e0443e; }
-        #minimizeButton:hover { background-color: #e6a723; }
-        #maximizeButton:hover { background-color: #1faf2f; }
-        QMenuBar::item {
-            background-color: transparent;
-            padding: 5px 10px;
-        }
-        QMenuBar::item:selected {
-            background-color: rgba(200, 200, 200, 0.3);
-            border-radius: 4px;
-        }
-    )");
-    // Initialize Shippo client with saved credentials
-    QSettings settings;
-    QString shippoToken = settings.value("shippoToken").toString();
-    
-    qDebug() << "Loading credentials:";
-    qDebug() << "Shippo Token:" << (shippoToken.isEmpty() ? "Not set" : "Set");
-
-    if (!shippoToken.isEmpty()) {
-        shippoClient = new ShippoClient(shippoToken, this);
-        
-        // Connect Shippo signals
-        connect(shippoClient, &ShippoClient::trackingInfoReceived, this, [this](const QJsonObject& info) {
-            QString trackingNumber = info["tracking_number"].toString();
-            packageDetails[trackingNumber] = info;
-        
-            // Get status from the normalized field we set in ShippoClient
-            QString status = info["status"].toString();
-            updatePackageStatus(trackingNumber, status);
-        
-            // Show details if this is the currently selected package
-            if (packageList->currentItem() && packageList->currentItem()->text() == trackingNumber) {
-                this->showPackageDetails(trackingNumber);
-            }
-        });
-        
-        connect(shippoClient, &ShippoClient::trackingError, this, [this](const QString& error) {
-            QMessageBox::warning(this, "Tracking Error", error);
-        });
-        
-        connect(shippoClient, &ShippoClient::webhookReceived, this, &MainWindow::handleWebhookEvent);
-    }
-
-    bool darkMode = settings.value("darkMode", false).toBool();
-    applyTheme(darkMode);
-
+    initializeTimers();
     setupUI();
     setupTrayIcon();
+    
+    QString shippoToken = settings.value("shippoToken").toString();
+    if (!shippoToken.isEmpty()) {
+        shippoClient = std::make_unique<ShippoClient>(shippoToken, this);
+        connectShippoSignals();
+    }
+    
     loadPackages();
     
-    // Auto-refresh every 5 minutes
-    QTimer* refreshTimer = new QTimer(this);
-    connect(refreshTimer, &QTimer::timeout, this, &MainWindow::refreshPackages);
-    refreshTimer->start(5 * 60 * 1000);  // 5 minutes in milliseconds
+    bool darkMode = settings.value("darkMode", false).toBool();
+    applyTheme(darkMode);
     
-    // Initial refresh
     QTimer::singleShot(1000, this, &MainWindow::refreshPackages);
 }
 
-MainWindow::~MainWindow()
+void MainWindow::initializeTimers()
 {
-    savePackages();
+    refreshTimer = std::make_unique<QTimer>(this);
+    connect(refreshTimer.get(), &QTimer::timeout, this, &MainWindow::refreshPackages);
+    refreshTimer->start(REFRESH_INTERVAL);
+    
+    retryTimer = std::make_unique<QTimer>(this);
+    connect(retryTimer.get(), &QTimer::timeout, this, &MainWindow::retryFailedUpdates);
+    retryTimer->start(RETRY_DELAY);
+    
+    queueProcessTimer = std::make_unique<QTimer>(this);
+    connect(queueProcessTimer.get(), &QTimer::timeout, this, &MainWindow::processUpdateQueue);
+    queueProcessTimer->start(1000);
+}
+
+void MainWindow::connectShippoSignals()
+{
+    if (!shippoClient) return;
+    
+    connect(shippoClient.get(), &ShippoClient::trackingInfoReceived, this, 
+        [this](const QJsonObject& info) {
+            QString trackingNumber = info["tracking_number"].toString();
+            
+            auto& package = packages[trackingNumber];
+            package.details = info;
+            package.status = info["status"].toString();
+            package.retryCount = 0;
+            
+            updatePackageStatus(trackingNumber, package.status);
+            
+            if (packageList->currentItem() && packageList->currentItem()->text() == trackingNumber) {
+                showPackageDetails(trackingNumber);
+            }
+        });
+    
+    connect(shippoClient.get(), &ShippoClient::trackingError, this, 
+        [this](const QString& error) {
+            // Get the current tracking number from the active update
+            QString trackingNumber;
+            if (!updateQueue.empty()) {
+                trackingNumber = updateQueue.front();
+            }
+            
+            if (!trackingNumber.isEmpty()) {
+                auto it = packages.find(trackingNumber);
+                if (it != packages.end()) {
+                    auto& package = it.value();
+                    package.retryCount++;
+                    package.lastUpdateAttempt = QDateTime::currentDateTime();
+                    
+                    if (package.retryCount >= MAX_RETRY_ATTEMPTS) {
+                        QMessageBox::warning(this, "Tracking Error", 
+                            QString("Failed to update %1 after %2 attempts: %3")
+                            .arg(trackingNumber)
+                            .arg(MAX_RETRY_ATTEMPTS)
+                            .arg(error));
+                    }
+                }
+            }
+        });
+    
+    connect(shippoClient.get(), &ShippoClient::webhookReceived, this, &MainWindow::handleWebhookEvent);
+}
+
+void MainWindow::setupUI()
+{
+    setupWindowControls();
+    setupInputArea();
+    setupPackageList();
+    setupDetailsView();
+    setupMenuBar();
+    setupLayout();
+    setupConnections();
+    
+    resize(900, 700);
+    setMinimumSize(600, 400);
+    
+    QRect screenGeometry = QGuiApplication::primaryScreen()->geometry();
+    int x = (screenGeometry.width() - width()) / 2;
+    int y = (screenGeometry.height() - height()) / 2;
+    move(x, y);
+}
+
+void MainWindow::setupWindowControls()
+{
+    auto titleBarLayout = std::make_unique<QHBoxLayout>();
+    titleBarLayout->setContentsMargins(10, 5, 10, 5);
+    titleBarLayout->setSpacing(8);
+    
+    auto closeButton = std::make_unique<QToolButton>(container.get());
+    closeButton->setObjectName("closeButton");
+    closeButton->setFixedSize(12, 12);
+    closeButton->setStyleSheet("background-color: #ff5f56; border-radius: 6px; border: none;");
+    connect(closeButton.get(), &QToolButton::clicked, this, &QMainWindow::close);
+    
+    auto minimizeButton = std::make_unique<QToolButton>(container.get());
+    minimizeButton->setObjectName("minimizeButton");
+    minimizeButton->setFixedSize(12, 12);
+    minimizeButton->setStyleSheet("background-color: #ffbd2e; border-radius: 6px; border: none;");
+    connect(minimizeButton.get(), &QToolButton::clicked, this, &QMainWindow::showMinimized);
+    
+    auto maximizeButton = std::make_unique<QToolButton>(container.get());
+    maximizeButton->setObjectName("maximizeButton");
+    maximizeButton->setFixedSize(12, 12);
+    maximizeButton->setStyleSheet("background-color: #27c93f; border-radius: 6px; border: none;");
+    connect(maximizeButton.get(), &QToolButton::clicked, this, [this]() {
+        isMaximized() ? showNormal() : showMaximized();
+    });
+    
+    auto titleLabel = std::make_unique<QLabel>("C++ Package Tracker by Mitchell Moss", container.get());
+    titleLabel->setStyleSheet("color: black; font-weight: bold; margin-left: 10px;");
+    
+    titleBarLayout->addWidget(closeButton.release());
+    titleBarLayout->addWidget(minimizeButton.release());
+    titleBarLayout->addWidget(maximizeButton.release());
+    titleBarLayout->addWidget(titleLabel.release());
+    titleBarLayout->addStretch();
+    
+    containerLayout = std::make_unique<QVBoxLayout>(container.get());
+    containerLayout->setContentsMargins(15, 15, 15, 15);
+    containerLayout->setSpacing(10);
+    containerLayout->addLayout(titleBarLayout.release());
+}
+
+void MainWindow::setupInputArea()
+{
+    auto inputLayout = std::make_unique<QHBoxLayout>();
+    
+    trackingInput = std::make_unique<QLineEdit>(this);
+    trackingInput->setPlaceholderText("Enter test number (SHIPPO_TRANSIT, SHIPPO_DELIVERED, etc) or tracking number...");
+    
+    noteInput = std::make_unique<QLineEdit>(this);
+    noteInput->setPlaceholderText("Add a note (optional)...");
+    
+    addButton = std::make_unique<QPushButton>("Add", this);
+    removeButton = std::make_unique<QPushButton>("Remove", this);
+    refreshButton = std::make_unique<QPushButton>("Refresh All", this);
+    
+    inputLayout->addWidget(trackingInput.get());
+    inputLayout->addWidget(noteInput.get());
+    inputLayout->addWidget(addButton.get());
+    inputLayout->addWidget(removeButton.get());
+    inputLayout->addWidget(refreshButton.get());
+    
+    containerLayout->addLayout(inputLayout.release());
+}
+
+void MainWindow::setupPackageList()
+{
+    packageList = std::make_unique<QListWidget>(this);
+    packageList->setItemDelegate(new PackageItemDelegate(packageList.get()));
+    containerLayout->addWidget(packageList.get());
+}
+
+void MainWindow::setupDetailsView()
+{
+    detailsView = std::make_unique<QTextEdit>(this);
+    detailsView->setReadOnly(true);
+    containerLayout->addWidget(detailsView.get());
+}
+
+void MainWindow::setupMenuBar()
+{
+    auto menuBar = std::make_unique<QMenuBar>(this);
+    auto settingsMenu = menuBar->addMenu("Settings");
+    
+    settingsMenu->addAction("API Credentials", this, [this]() {
+        settingsDialog = std::make_unique<SettingsDialog>(this);
+        connect(settingsDialog.get(), &SettingsDialog::accepted, this, [this]() {
+            QString shippoToken = settingsDialog->shippoTokenInput->text();
+            if (shippoToken.isEmpty()) {
+                QMessageBox::warning(this, "Invalid Credentials", 
+                    "Shippo API token must be provided");
+                return;
+            }
+            updateApiClients(shippoToken);
+        });
+        settingsDialog->exec();
+    });
+    
+    setMenuBar(menuBar.release());
+}
+
+void MainWindow::setupLayout()
+{
+    auto shadow = std::make_unique<QGraphicsDropShadowEffect>();
+    shadow->setBlurRadius(20);
+    shadow->setColor(QColor(0, 0, 0, 60));
+    shadow->setOffset(4, 4);
+    container->setGraphicsEffect(shadow.release());
+    
+    setCentralWidget(container.get());
+}
+
+void MainWindow::setupConnections()
+{
+    connect(addButton.get(), &QPushButton::clicked, this, &MainWindow::addPackage);
+    connect(removeButton.get(), &QPushButton::clicked, this, &MainWindow::removePackage);
+    connect(refreshButton.get(), &QPushButton::clicked, this, &MainWindow::refreshPackages);
+    
+    packageList->setContextMenuPolicy(Qt::CustomContextMenu);
+    connect(packageList.get(), &QWidget::customContextMenuRequested, this, [this](const QPoint &pos) {
+        QMenu contextMenu(tr("Context menu"), this);
+        QAction *editNoteAction = contextMenu.addAction("Edit Note");
+        connect(editNoteAction, &QAction::triggered, this, &MainWindow::editNote);
+        contextMenu.exec(packageList->mapToGlobal(pos));
+    });
+    
+    connect(packageList.get(), &QListWidget::itemClicked, this, 
+        QOverload<QListWidgetItem*>::of(&MainWindow::showPackageDetails));
 }
 
 void MainWindow::setupTrayIcon()
 {
-    trayIcon = new QSystemTrayIcon(this);
+    trayIcon = std::make_unique<QSystemTrayIcon>(this);
     
-    // Create a proper icon
     QPixmap iconPixmap(64, 64);
     iconPixmap.fill(Qt::transparent);
     QPainter painter(&iconPixmap);
     painter.setRenderHint(QPainter::Antialiasing);
-    painter.setBrush(QColor(100, 149, 237)); // Cornflower blue
+    painter.setBrush(QColor(100, 149, 237));
     painter.setPen(Qt::NoPen);
     painter.drawEllipse(8, 8, 48, 48);
     painter.setPen(Qt::white);
@@ -285,12 +381,282 @@ void MainWindow::setupTrayIcon()
     
     trayIcon->setIcon(QIcon(iconPixmap));
     
-    QMenu* trayMenu = new QMenu(this);
+    auto trayMenu = std::make_unique<QMenu>(this);
     trayMenu->addAction("Show", this, &QWidget::show);
     trayMenu->addAction("Quit", qApp, &QCoreApplication::quit);
     
-    trayIcon->setContextMenu(trayMenu);
+    trayIcon->setContextMenu(trayMenu.release());
     trayIcon->show();
+}
+
+void MainWindow::addPackage()
+{
+    QString trackingNumber = trackingInput->text().trimmed();
+    QString note = noteInput->text().trimmed();
+    
+    auto validatedNumber = validateTrackingNumber(trackingNumber);
+    if (!validatedNumber) {
+        QMessageBox::warning(this, "Invalid Tracking Number",
+            "Please enter a valid tracking number or test number (SHIPPO_TRANSIT, etc)");
+        return;
+    }
+    
+    auto item = std::make_unique<QListWidgetItem>(*validatedNumber);
+    item->setData(Qt::UserRole, "UNKNOWN");
+    item->setData(Qt::UserRole + 1, note);
+    
+    PackageData packageData("UNKNOWN", note);
+    packages[*validatedNumber] = packageData;
+    
+    packageList->addItem(item.release());
+    trackingInput->clear();
+    noteInput->clear();
+    
+    savePackages();
+    scheduleUpdate(*validatedNumber);
+}
+
+void MainWindow::removePackage()
+{
+    auto item = packageList->currentItem();
+    if (!item) return;
+    
+    QString trackingNumber = item->text();
+    packages.remove(trackingNumber);
+    delete packageList->takeItem(packageList->row(item));
+    savePackages();
+}
+
+void MainWindow::refreshPackages()
+{
+    if (!shippoClient) return;
+    
+    for (const auto& trackingNumber : packages.keys()) {
+        scheduleUpdate(trackingNumber);
+    }
+}
+
+void MainWindow::updatePackageStatus(const QString& trackingNumber, const QString& status, bool notify)
+{
+    for (int i = 0; i < packageList->count(); ++i) {
+        auto item = packageList->item(i);
+        if (item->text() == trackingNumber) {
+            QString oldStatus = item->data(Qt::UserRole).toString();
+            
+            if (oldStatus != status) {
+                item->setData(Qt::UserRole, status);
+                packageList->update(packageList->indexFromItem(item));
+                
+                if (notify) {
+                    QString notificationMsg = QString("Package %1 status changed from %2 to %3")
+                        .arg(trackingNumber)
+                        .arg(oldStatus)
+                        .arg(status);
+                    showNotification("Package Status Update", notificationMsg);
+                }
+            }
+            break;
+        }
+    }
+}
+
+void MainWindow::showPackageDetails(QListWidgetItem* item)
+{
+    if (!item) return;
+    showPackageDetails(item->text());
+}
+
+void MainWindow::showPackageDetails(const QString& trackingNumber)
+{
+    auto it = packages.find(trackingNumber);
+    if (it == packages.end()) return;
+    
+    const auto& package = it.value();
+    if (package.details.isEmpty()) {
+        detailsView->setHtml(QString("<div style='color: %1; font-family: -apple-system;'>Loading details for: %2</div>")
+            .arg(settings.value("darkMode", false).toBool() ? "#ffffff" : "#2c3e50")
+            .arg(trackingNumber));
+        
+        if (shippoClient) {
+            scheduleUpdate(trackingNumber);
+        }
+        return;
+    }
+    
+    QString carrier = package.details["carrier"].toString();
+    if (carrier.isEmpty()) carrier = "Unknown Carrier";
+    
+    bool isDarkMode = settings.value("darkMode", false).toBool();
+    QString bgColor = isDarkMode ? "#2d2d2d" : "white";
+    QString textColor = isDarkMode ? "#ffffff" : "#2c3e50";
+    QString sectionBgColor = isDarkMode ? "#1e1e1e" : "#f8f9fa";
+    QString borderColor = isDarkMode ? "rgba(255, 255, 255, 0.15)" : "rgba(0, 0, 0, 0.1)";
+    
+    QString details = formatPackageDetails(package.details, bgColor, borderColor, textColor, sectionBgColor);
+    detailsView->setHtml(details);
+}
+
+QString MainWindow::formatPackageDetails(const QJsonObject& info, const QString& bgColor,
+    const QString& borderColor, const QString& textColor, const QString& sectionBgColor)
+{
+    QString details = QString(
+        "<div style='background: %1; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px %2;'>"
+        "  <div style='display: flex; align-items: center; margin-bottom: 16px;'>"
+        "    <div style='flex-grow: 1;'>"
+        "      <h2 style='margin: 0; color: %3; font-size: 24px;'>%4</h2>"
+        "      <p style='color: %5; margin: 4px 0 0 0; font-size: 16px;'>%6</p>"
+        "    </div>"
+        "  </div>"
+    ).arg(bgColor).arg(borderColor).arg(textColor)
+      .arg(info["tracking_number"].toString())
+      .arg(textColor)
+      .arg(info["carrier"].toString());
+    
+    QString statusColor = info["status"].toString().contains("Delivered") ? "#27ae60" : "#f39c12";
+    details += formatStatusSection(info["status"].toString(), sectionBgColor, borderColor, textColor, statusColor);
+    
+    if (info.contains("estimatedDelivery")) {
+        details += formatDeliverySection(info["estimatedDelivery"].toString(), 
+            sectionBgColor, borderColor, textColor);
+    }
+    
+    if (info.contains("events")) {
+        details += formatTrackingHistory(info["events"].toArray(), 
+            bgColor, borderColor, textColor);
+    }
+    
+    details += "</div>";
+    return details;
+}
+
+QString MainWindow::formatStatusSection(const QString& status, const QString& bgColor,
+    const QString& borderColor, const QString& textColor, const QString& statusColor)
+{
+    return QString(
+        "  <div style='background: %1; padding: 16px; border-radius: 8px; margin-bottom: 20px; border: 1px solid %2;'>"
+        "    <h3 style='margin: 0 0 8px 0; color: %3; font-size: 18px;'>Current Status</h3>"
+        "    <p style='margin: 0; color: %4; font-weight: 500; font-size: 16px;'>%5</p>"
+        "  </div>"
+    ).arg(bgColor).arg(borderColor).arg(textColor).arg(statusColor).arg(status);
+}
+
+QString MainWindow::formatDeliverySection(const QString& estimatedDelivery, const QString& bgColor,
+    const QString& borderColor, const QString& textColor)
+{
+    return QString(
+        "  <div style='background: %1; padding: 16px; border-radius: 8px; margin-bottom: 20px; border: 1px solid %2;'>"
+        "    <h3 style='margin: 0 0 8px 0; color: %3; font-size: 18px;'>Estimated Delivery</h3>"
+        "    <p style='margin: 0; color: %3; font-size: 16px;'>%4</p>"
+        "  </div>"
+    ).arg(bgColor).arg(borderColor).arg(textColor).arg(estimatedDelivery);
+}
+
+QString MainWindow::formatTrackingHistory(const QJsonArray& events, const QString& bgColor,
+    const QString& borderColor, const QString& textColor)
+{
+    QString history = QString("<h3 style='margin: 0 0 16px 0; color: %1; font-size: 18px;'>Tracking History</h3>"
+                            "<div style='max-height: 400px; overflow-y: auto;'>").arg(textColor);
+    
+    for (const auto& event : events) {
+        QJsonObject e = event.toObject();
+        QDateTime dateTime = QDateTime::fromString(e["timestamp"].toString(), "yyyyMMdd HHmmss");
+        QString formattedDate = dateTime.toString("MMM d, yyyy h:mm AP");
+        
+        history += QString(
+            "<div style='background: %1; padding: 16px; border-radius: 8px; margin-bottom: 12px; "
+            "     border: 1px solid %2;'>"
+            "  <div style='color: %3; font-size: 14px; margin-bottom: 4px;'>%4</div>"
+            "  <div style='color: %3; font-weight: 500; font-size: 16px; margin-bottom: 4px;'>%5</div>"
+            "  <div style='color: %3; font-size: 14px;'>%6</div>"
+            "</div>"
+        ).arg(bgColor).arg(borderColor).arg(textColor)
+         .arg(formattedDate)
+         .arg(e["description"].toString())
+         .arg(e["location"].toString());
+    }
+    
+    history += "</div>";
+    return history;
+}
+
+void MainWindow::showNotification(const QString& title, const QString& message)
+{
+    if (trayIcon && QSystemTrayIcon::supportsMessages()) {
+        trayIcon->showMessage(title, message, QSystemTrayIcon::Information, 5000);
+    }
+}
+
+void MainWindow::handleWebhookEvent(const QString& event, const QJsonObject& data)
+{
+    if (event != "track_updated") return;
+    
+    QString trackingNumber = data["tracking_number"].toString();
+    QJsonObject trackingStatus = data["tracking_status"].toObject();
+    QString status = trackingStatus["status"].toString();
+    QString details = trackingStatus["status_details"].toString();
+    
+    updatePackageStatus(trackingNumber, status);
+    showPackageDetails(trackingNumber);
+    
+    QString notificationMsg = QString("Package %1: %2\n%3")
+        .arg(trackingNumber)
+        .arg(status)
+        .arg(details);
+    showNotification("Package Update", notificationMsg);
+}
+
+void MainWindow::editNote()
+{
+    auto currentItem = packageList->currentItem();
+    if (!currentItem) return;
+    
+    QString trackingNumber = currentItem->text();
+    QString currentNote = currentItem->data(Qt::UserRole + 1).toString();
+    
+    bool ok;
+    QString newNote = QInputDialog::getText(this, "Edit Note",
+        "Enter note for " + trackingNumber + ":",
+        QLineEdit::Normal, currentNote, &ok);
+    
+    if (ok) {
+        currentItem->setData(Qt::UserRole + 1, newNote);
+        auto it = packages.find(trackingNumber);
+        if (it != packages.end()) {
+            it.value().note = newNote;
+        }
+        savePackages();
+    }
+}
+
+void MainWindow::savePackages()
+{
+    QStringList packageList;
+    QMap<QString, QVariant> notes;
+    
+    for (auto it = packages.begin(); it != packages.end(); ++it) {
+        packageList << it.key();
+        notes[it.key()] = it.value().note;
+    }
+    
+    settings.setValue("trackingNumbers", packageList);
+    settings.setValue("packageNotes", notes);
+    settings.sync();
+}
+
+void MainWindow::loadPackages()
+{
+    QStringList savedPackages = settings.value("trackingNumbers").toStringList();
+    QMap<QString, QVariant> notes = settings.value("packageNotes").toMap();
+    
+    for (const QString& trackingNumber : savedPackages) {
+        PackageData packageData("UNKNOWN", notes[trackingNumber].toString());
+        packages[trackingNumber] = packageData;
+        
+        auto item = std::make_unique<QListWidgetItem>(trackingNumber);
+        item->setData(Qt::UserRole, "UNKNOWN");
+        item->setData(Qt::UserRole + 1, packageData.note);
+        packageList->addItem(item.release());
+    }
 }
 
 void MainWindow::mousePressEvent(QMouseEvent* event)
@@ -318,650 +684,180 @@ void MainWindow::mouseReleaseEvent(QMouseEvent* event)
     }
 }
 
-PackageItemDelegate::PackageItemDelegate(QObject* parent) : QStyledItemDelegate(parent) {}
-
-void PackageItemDelegate::paint(QPainter* painter, const QStyleOptionViewItem& option, const QModelIndex& index) const
+MainWindow::~MainWindow()
 {
-    QStyleOptionViewItem opt = option;
-    initStyleOption(&opt, index);
+    savePackages();
+    cleanupResources();
+}
+
+void MainWindow::cleanupResources()
+{
+    if (refreshTimer) refreshTimer->stop();
+    if (retryTimer) retryTimer->stop();
+    if (queueProcessTimer) queueProcessTimer->stop();
     
-    // Get the status and note from the item's data
-    QString status = index.data(Qt::UserRole).toString().toUpper();
-    QString note = index.data(Qt::UserRole + 1).toString();
-    
-    // Draw the background
-    QStyle* style = opt.widget ? opt.widget->style() : QApplication::style();
-    style->drawPrimitive(QStyle::PE_PanelItemViewItem, &opt, painter, opt.widget);
-    
-    // Calculate text and icon positions
-    QRect rect = opt.rect;
-    int padding = 4;
-    
-    // Draw the status icon with consistent color mapping
-    QColor statusColor = QColor("#95a5a6"); // Default gray
-    
-    // For test tracking numbers, get status from tracking number
-    QString normalizedStatus = status.toUpper();
-    if (index.data(Qt::DisplayRole).toString().startsWith("SHIPPO_")) {
-        normalizedStatus = index.data(Qt::DisplayRole).toString().split("_")[1];
-    }
-    
-    if (normalizedStatus == "DELIVERED") {
-        statusColor = QColor("#27ae60"); // Green
-    } else if (normalizedStatus == "TRANSIT") {
-        statusColor = QColor("#f39c12"); // Orange
-    } else if (normalizedStatus == "PRE_TRANSIT") {
-        statusColor = QColor("#3498db"); // Blue
-    } else if (normalizedStatus == "FAILURE") {
-        statusColor = QColor("#e74c3c"); // Red
-    } else if (normalizedStatus == "RETURNED") {
-        statusColor = QColor("#9b59b6"); // Purple
-    }
-    
-    QRect iconRect = rect;
-    iconRect.setWidth(16);
-    iconRect.setHeight(16);
-    iconRect.moveTop(rect.top() + (rect.height() - iconRect.height()) / 2);
-    iconRect.moveLeft(rect.left() + padding);
-    
-    painter->save();
-    painter->setRenderHint(QPainter::Antialiasing);
-    painter->setPen(Qt::NoPen);
-    painter->setBrush(statusColor);
-    painter->drawEllipse(iconRect);
-    painter->restore();
-    
-    // Draw the tracking number
-    QRect textRect = rect;
-    textRect.setLeft(iconRect.right() + padding * 2);
-    QString trackingNumber = index.data(Qt::DisplayRole).toString();
-    painter->drawText(textRect, Qt::AlignVCenter, trackingNumber);
-    
-    // Draw the note if it exists
-    if (!note.isEmpty()) {
-        QFont italicFont = painter->font();
-        italicFont.setItalic(true);
-        painter->save();
-        painter->setFont(italicFont);
-        painter->setPen(QColor("#666666"));
-        QRect noteRect = rect;
-        noteRect.setLeft(textRect.left() + painter->fontMetrics().horizontalAdvance(trackingNumber) + padding * 4);
-        painter->drawText(noteRect, Qt::AlignVCenter, "- " + note);
-        painter->restore();
+    while (!updateQueue.empty()) {
+        updateQueue.pop();
     }
 }
 
-QSize PackageItemDelegate::sizeHint(const QStyleOptionViewItem& option, const QModelIndex& index) const
+std::optional<QString> MainWindow::validateTrackingNumber(const QString& number) const
 {
-    QSize size = QStyledItemDelegate::sizeHint(option, index);
-    size.setHeight(size.height() + 8); // Add some vertical padding
-    return size;
-}
-
-void MainWindow::setupUI()
-{
-    // Input area
-    QHBoxLayout *inputLayout = new QHBoxLayout();
-    trackingInput = new QLineEdit(this);
-    trackingInput->setPlaceholderText("Enter test number (SHIPPO_TRANSIT, SHIPPO_DELIVERED, etc) or tracking number...");
-    
-    noteInput = new QLineEdit(this);
-    noteInput->setPlaceholderText("Add a note (optional)...");
-    
-    addButton = new QPushButton("Add", this);
-    removeButton = new QPushButton("Remove", this);
-    refreshButton = new QPushButton("Refresh All", this);
-    
-    inputLayout->addWidget(trackingInput);
-    inputLayout->addWidget(noteInput);
-    inputLayout->addWidget(addButton);
-    inputLayout->addWidget(removeButton);
-    inputLayout->addWidget(refreshButton);
-    
-    // Package list
-    packageList = new QListWidget(this);
-    packageList->setItemDelegate(new PackageItemDelegate(packageList));
-    
-    // Details view
-    detailsView = new QTextEdit(this);
-    detailsView->setReadOnly(true);
-    
-    // Add menu bar
-    QMenuBar* menuBar = new QMenuBar(this);
-    QMenu* settingsMenu = menuBar->addMenu("Settings");
-    settingsMenu->addAction("API Credentials", this, [this]() {
-        SettingsDialog* dialog = new SettingsDialog(this);
-        connect(dialog, &SettingsDialog::accepted, this, [this, dialog]() {
-            QString shippoToken = dialog->shippoTokenInput->text();
-            if (shippoToken.isEmpty()) {
-                QMessageBox::warning(this, "Invalid Credentials", 
-                    "Shippo API token must be provided");
-                return;
-            }
-        
-            updateApiClients(shippoToken);
-        });
-        dialog->exec();
-    });
-    setMenuBar(menuBar);
-
-    // Add widgets to container
-    containerLayout->addLayout(inputLayout);
-    containerLayout->addWidget(packageList);
-    containerLayout->addWidget(detailsView);
-    
-    // Add drop shadow to container
-    QGraphicsDropShadowEffect* shadow = new QGraphicsDropShadowEffect;
-    shadow->setBlurRadius(20);
-    shadow->setColor(QColor(0, 0, 0, 60));
-    shadow->setOffset(4, 4);
-    container->setGraphicsEffect(shadow);
-    
-    setCentralWidget(container);
-    
-    // Adjust window size and position
-    resize(900, 700);
-    QRect screenGeometry = QGuiApplication::primaryScreen()->geometry();
-    int x = (screenGeometry.width() - width()) / 2;
-    int y = (screenGeometry.height() - height()) / 2;
-    move(x, y);
-    
-    // Set minimum size
-    setMinimumSize(600, 400);
-    
-    // Connect signals
-    connect(addButton, &QPushButton::clicked, this, &MainWindow::addPackage);
-    connect(removeButton, &QPushButton::clicked, this, &MainWindow::removePackage);
-    connect(refreshButton, &QPushButton::clicked, this, &MainWindow::refreshPackages);
-    
-    // Add context menu for editing notes
-    packageList->setContextMenuPolicy(Qt::CustomContextMenu);
-    connect(packageList, &QWidget::customContextMenuRequested, this, [this](const QPoint &pos) {
-        QMenu contextMenu(tr("Context menu"), this);
-        QAction *editNoteAction = contextMenu.addAction("Edit Note");
-        connect(editNoteAction, &QAction::triggered, this, &MainWindow::editNote);
-        contextMenu.exec(packageList->mapToGlobal(pos));
-    });
-    connect(packageList, &QListWidget::itemClicked, this, QOverload<QListWidgetItem*>::of(&MainWindow::showPackageDetails));
-}
-
-void MainWindow::addPackage()
-{
-    QString trackingNumber = trackingInput->text().trimmed();
-    QString note = noteInput->text().trimmed();
-    
-    if (!trackingNumber.isEmpty()) {
-        QListWidgetItem* item = new QListWidgetItem(trackingNumber);
-        item->setData(Qt::UserRole, "UNKNOWN");
-        item->setData(Qt::UserRole + 1, note);
-        packageList->addItem(item);
-        
-        if (!note.isEmpty()) {
-            packageNotes[trackingNumber] = note;
-        }
-        
-        trackingInput->clear();
-        noteInput->clear();
-        savePackages();
+    if (number.isEmpty()) {
+        return std::nullopt;
     }
-}
-
-void MainWindow::removePackage()
-{
-    QListWidgetItem *item = packageList->currentItem();
-    if (item) {
-        delete packageList->takeItem(packageList->row(item));
-        savePackages();
-    }
-}
-
-void MainWindow::refreshPackages()
-{
-    for (int i = 0; i < packageList->count(); ++i) {
-        QString trackingNumber = packageList->item(i)->text();
-        QString carrier = detectCarrier(trackingNumber);
-        
-        if (shippoClient) {
-            shippoClient->trackPackage(trackingNumber);
-        } else {
-            qDebug() << "Unknown carrier for tracking number:" << trackingNumber;
-        }
-    }
-}
-
-QString MainWindow::detectCarrier(const QString& trackingNumber)
-{
+    
     static const QStringList validTestNumbers = {
         "SHIPPO_PRE_TRANSIT",
         "SHIPPO_TRANSIT",
         "SHIPPO_DELIVERED",
-        "SHIPPO_RETURNED", 
+        "SHIPPO_RETURNED",
         "SHIPPO_FAILURE",
         "SHIPPO_UNKNOWN"
     };
     
-    // Validate test tracking numbers
-    if (trackingNumber.startsWith("SHIPPO_")) {
-        if (!validTestNumbers.contains(trackingNumber)) {
-            QMessageBox::warning(nullptr, "Invalid Test Number",
-                "Valid test numbers are: SHIPPO_PRE_TRANSIT, SHIPPO_TRANSIT, "
-                "SHIPPO_DELIVERED, SHIPPO_RETURNED, SHIPPO_FAILURE, SHIPPO_UNKNOWN");
-            return QString();
-        }
-        return "shippo";
+    if (number.startsWith("SHIPPO_") && !validTestNumbers.contains(number)) {
+        return std::nullopt;
     }
     
-    // For now, assume all other numbers are shippo
-    return "shippo";
+    return number;
 }
 
-void MainWindow::showPackageDetails(QListWidgetItem *item)
+void MainWindow::scheduleUpdate(const QString& trackingNumber)
 {
-    this->showPackageDetails(item->text());
-}
-
-void MainWindow::updatePackageStatus(const QString& trackingNumber, const QString& status)
-{
-    QString oldStatus;
-    
-    // Find and update the list item
-    for (int i = 0; i < packageList->count(); ++i) {
-        QListWidgetItem* item = packageList->item(i);
-        if (item->text() == trackingNumber) {
-            oldStatus = item->data(Qt::UserRole).toString();
-            
-            // Only update if status changed
-            if (oldStatus != status) {
-                item->setData(Qt::UserRole, status);
-                packageList->update(packageList->indexFromItem(item));
-                
-                // Show notification for status changes
-                QString notificationMsg = QString("Package %1 status changed from %2 to %3")
-                    .arg(trackingNumber)
-                    .arg(oldStatus)
-                    .arg(status);
-                showNotification("Package Status Update", notificationMsg);
-            }
-            break;
-        }
+    if (!updateQueue.empty() && updateQueue.back() == trackingNumber) {
+        return;
     }
-    
-    // Show notification if status changed
-    if (!oldStatus.isEmpty() && oldStatus != status) {
-        QString notificationMsg = QString("Package %1 status changed from %2 to %3")
-            .arg(trackingNumber)
-            .arg(oldStatus)
-            .arg(status);
-        showNotification("Package Status Update", notificationMsg);
-    }
+    updateQueue.push(trackingNumber);
 }
 
-void MainWindow::showPackageDetails(const QString& trackingNumber)
+void MainWindow::applyTheme(bool darkMode)
 {
-    QString carrier = detectCarrier(trackingNumber);
+    settings.setValue("darkMode", darkMode);
+    settings.sync();
     
-    if (packageDetails.contains(trackingNumber)) {
-        QJsonObject info = packageDetails[trackingNumber];
-        QString carrier = info["carrier"].toString();
-        if (carrier.isEmpty()) {
-            carrier = "Unknown Carrier";
-        }
-        
-        // Get the current theme
-        QSettings settings;
-        bool isDarkMode = settings.value("darkMode", false).toBool();
-        
-        // Define colors based on theme
-        QString bgColor = isDarkMode ? "#2d2d2d" : "white";
-        QString textColor = isDarkMode ? "#ffffff" : "#2c3e50";
-        QString sectionBgColor = isDarkMode ? "#1e1e1e" : "#f8f9fa";
-        QString borderColor = isDarkMode ? "rgba(255, 255, 255, 0.15)" : "rgba(0, 0, 0, 0.1)";
-        
-        // Format the tracking number with carrier logo/icon
-        QString details = QString(
-            "<div style='background: %1; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px %2;'>"
-            "  <div style='display: flex; align-items: center; margin-bottom: 16px;'>"
-            "    <div style='flex-grow: 1;'>"
-            "      <h2 style='margin: 0; color: %3; font-size: 24px; font-family: -apple-system, BlinkMacSystemFont, \"Segoe UI\", Roboto, Arial, sans-serif;'>%4</h2>"
-            "      <p style='color: %5; margin: 4px 0 0 0; font-size: 16px; font-family: -apple-system, BlinkMacSystemFont, \"Segoe UI\", Roboto, Arial, sans-serif;'>%6</p>"
-            "    </div>"
-            "  </div>"
-        ).arg(bgColor).arg(borderColor).arg(textColor).arg(trackingNumber).arg(textColor).arg(carrier);
-
-        // Current Status Section
-        QString statusColor = info["status"].toString().contains("Delivered") ? "#27ae60" : "#f39c12";
-        details += QString(
-            "  <div style='background: %1; padding: 16px; border-radius: 8px; margin-bottom: 20px; border: 1px solid %2;'>"
-            "    <h3 style='margin: 0 0 8px 0; color: %3; font-size: 18px; font-family: -apple-system, BlinkMacSystemFont, \"Segoe UI\", Roboto, Arial, sans-serif;'>Current Status</h3>"
-            "    <p style='margin: 0; color: %4; font-weight: 500; font-size: 16px; font-family: -apple-system, BlinkMacSystemFont, \"Segoe UI\", Roboto, Arial, sans-serif;'>%5</p>"
-            "  </div>"
-        ).arg(sectionBgColor).arg(borderColor).arg(textColor).arg(statusColor).arg(info["status"].toString());
-
-        // Estimated Delivery Section
-        if (info.contains("estimatedDelivery")) {
-            details += QString(
-                "  <div style='background: %1; padding: 16px; border-radius: 8px; margin-bottom: 20px; border: 1px solid %2;'>"
-                "    <h3 style='margin: 0 0 8px 0; color: %3; font-size: 18px; font-family: -apple-system, BlinkMacSystemFont, \"Segoe UI\", Roboto, Arial, sans-serif;'>Estimated Delivery</h3>"
-                "    <p style='margin: 0; color: %3; font-size: 16px; font-family: -apple-system, BlinkMacSystemFont, \"Segoe UI\", Roboto, Arial, sans-serif;'>%4</p>"
-                "  </div>"
-            ).arg(sectionBgColor).arg(borderColor).arg(textColor).arg(info["estimatedDelivery"].toString());
-        }
-
-        // Tracking History Section
-        if (info.contains("events")) {
-            details += QString("<h3 style='margin: 0 0 16px 0; color: %1; font-size: 18px; font-family: -apple-system, BlinkMacSystemFont, \"Segoe UI\", Roboto, Arial, sans-serif;'>Tracking History</h3>"
-                             "<div style='max-height: 400px; overflow-y: auto;'>").arg(textColor);
-            
-            QJsonArray events = info["events"].toArray();
-            for (const QJsonValue& event : events) {
-                QJsonObject e = event.toObject();
-                
-                // Parse and format the timestamp
-                QString timestamp = e["timestamp"].toString();
-                QDateTime dateTime = QDateTime::fromString(timestamp, "yyyyMMdd HHmmss");
-                QString formattedDate = dateTime.toString("MMM d, yyyy h:mm AP");
-                
-                details += QString(
-                    "<div style='background: %1; padding: 16px; border-radius: 8px; margin-bottom: 12px; "
-                    "     border: 1px solid %2;'>"
-                    "  <div style='color: %3; font-size: 14px; margin-bottom: 4px; font-family: -apple-system, BlinkMacSystemFont, \"Segoe UI\", Roboto, Arial, sans-serif;'>%4</div>"
-                    "  <div style='color: %3; font-weight: 500; font-size: 16px; margin-bottom: 4px; font-family: -apple-system, BlinkMacSystemFont, \"Segoe UI\", Roboto, Arial, sans-serif;'>%5</div>"
-                    "  <div style='color: %3; font-size: 14px; font-family: -apple-system, BlinkMacSystemFont, \"Segoe UI\", Roboto, Arial, sans-serif;'>%6</div>"
-                    "</div>"
-                ).arg(bgColor).arg(borderColor).arg(textColor)
-                 .arg(formattedDate)
-                 .arg(e["description"].toString())
-                 .arg(e["location"].toString());
-            }
-            details += "</div>";
-        }
-        
-        details += "</div>"; // Close main container
-        
-        detailsView->setHtml(details);
-    } else {
-        QString loadingText = QString("<div style='color: %1; font-family: -apple-system, BlinkMacSystemFont, \"Segoe UI\", Roboto, Arial, sans-serif;'>Loading details for: %2</div>")
-            .arg(settings.value("darkMode", false).toBool() ? "#ffffff" : "#2c3e50")
-            .arg(trackingNumber);
-        detailsView->setHtml(loadingText);
-        
-        QString carrier = detectCarrier(trackingNumber);
-        if (shippoClient) {
-            shippoClient->trackPackage(trackingNumber);
-        } else {
-            detailsView->setHtml(QString("<div style='color: %1; font-family: -apple-system, BlinkMacSystemFont, \"Segoe UI\", Roboto, Arial, sans-serif;'>Unknown carrier for tracking number: %2</div>")
-                .arg(settings.value("darkMode", false).toBool() ? "#ffffff" : "#2c3e50")
-                .arg(trackingNumber));
-        }
-    }
-}
-
-void MainWindow::loadPackages()
-{
-    QSettings settings;
-    QStringList packages = settings.value("trackingNumbers").toStringList();
-    QMap<QString, QVariant> notes = settings.value("packageNotes").toMap();
+    QString bgColor = darkMode ? "#2d2d2d" : "white";
+    QString textColor = darkMode ? "#ffffff" : "#2c3e50";
+    QString borderColor = darkMode ? "rgba(255, 255, 255, 0.15)" : "rgba(0, 0, 0, 0.1)";
     
-    for (const QString& trackingNumber : packages) {
-        QListWidgetItem* item = new QListWidgetItem(trackingNumber);
-        item->setData(Qt::UserRole, "UNKNOWN");
-        
-        // Load note if it exists
-        if (notes.contains(trackingNumber)) {
-            QString note = notes[trackingNumber].toString();
-            item->setData(Qt::UserRole + 1, note);
-            packageNotes[trackingNumber] = note;
-        } else {
-            // Initialize with empty note if none exists
-            item->setData(Qt::UserRole + 1, "");
-            packageNotes[trackingNumber] = "";
-        }
-        
-        packageList->addItem(item);
-    }
-}
-
-void MainWindow::showNotification(const QString& title, const QString& message)
-{
-    if (trayIcon && QSystemTrayIcon::supportsMessages()) {
-        trayIcon->showMessage(title, message, QSystemTrayIcon::Information, 5000);
-    }
-}
-
-void MainWindow::handleWebhookEvent(const QString& event, const QJsonObject& data)
-{
-    qDebug() << "Received webhook event:" << event;
-    qDebug() << "Webhook data:" << data;
+    // Main window styling
+    container->setStyleSheet(QString(
+        "QWidget#container {"
+        "  background-color: %1;"
+        "  border-radius: 10px;"
+        "  border: 1px solid %2;"
+        "}"
+    ).arg(bgColor).arg(borderColor));
     
-    // Handle different event types
-    if (event == "track_updated") {
-        QString trackingNumber = data["tracking_number"].toString();
-        QJsonObject trackingStatus = data["tracking_status"].toObject();
-        QString status = trackingStatus["status"].toString();
-        QString details = trackingStatus["status_details"].toString();
-        
-        updatePackageStatus(trackingNumber, status);
-        showPackageDetails(trackingNumber);
-        
-        // Show notification for status changes
-        QString notificationMsg = QString("Package %1: %2\n%3")
-            .arg(trackingNumber)
-            .arg(status)
-            .arg(details);
-        showNotification("Package Update", notificationMsg);
+    // Input area styling
+    QString inputStyle = QString(
+        "QLineEdit {"
+        "  background-color: %1;"
+        "  color: %2;"
+        "  border: 1px solid %3;"
+        "  border-radius: 4px;"
+        "  padding: 4px 8px;"
+        "}"
+        "QPushButton {"
+        "  background-color: #3498db;"
+        "  color: white;"
+        "  border: none;"
+        "  border-radius: 4px;"
+        "  padding: 6px 12px;"
+        "}"
+        "QPushButton:hover {"
+        "  background-color: #2980b9;"
+        "}"
+    ).arg(darkMode ? "#1e1e1e" : "#f8f9fa")
+     .arg(textColor)
+     .arg(borderColor);
+    
+    trackingInput->setStyleSheet(inputStyle);
+    noteInput->setStyleSheet(inputStyle);
+    addButton->setStyleSheet(inputStyle);
+    removeButton->setStyleSheet(inputStyle);
+    refreshButton->setStyleSheet(inputStyle);
+    
+    // Package list styling
+    packageList->setStyleSheet(QString(
+        "QListWidget {"
+        "  background-color: %1;"
+        "  color: %2;"
+        "  border: 1px solid %3;"
+        "  border-radius: 4px;"
+        "}"
+        "QListWidget::item {"
+        "  padding: 8px;"
+        "  border-bottom: 1px solid %3;"
+        "}"
+        "QListWidget::item:selected {"
+        "  background-color: #3498db;"
+        "  color: white;"
+        "}"
+    ).arg(bgColor).arg(textColor).arg(borderColor));
+    
+    // Details view styling
+    detailsView->setStyleSheet(QString(
+        "QTextEdit {"
+        "  background-color: %1;"
+        "  color: %2;"
+        "  border: 1px solid %3;"
+        "  border-radius: 4px;"
+        "}"
+    ).arg(bgColor).arg(textColor).arg(borderColor));
+    
+    // If a package is currently selected, refresh its details to update colors
+    if (packageList->currentItem()) {
+        showPackageDetails(packageList->currentItem());
     }
 }
 
 void MainWindow::updateApiClients(const QString& shippoToken)
 {
-    if (shippoClient) {
-        shippoClient->deleteLater();
-    }
+    settings.setValue("shippoToken", shippoToken);
+    settings.sync();
     
-    shippoClient = new ShippoClient(shippoToken, this);
-
-    // Connect signals
-    connect(shippoClient, &ShippoClient::trackingInfoReceived, this, [this](const QJsonObject& info) {
-        QString trackingNumber = info["tracking_number"].toString();
-        packageDetails[trackingNumber] = info;
-        
-        // Update the status in the list
-        updatePackageStatus(trackingNumber, info["status"].toString());
-        
-        // Show details if this is the currently selected package
-        if (packageList->currentItem() && packageList->currentItem()->text() == trackingNumber) {
-            this->showPackageDetails(trackingNumber);
-        }
-    });
+    shippoClient = std::make_unique<ShippoClient>(shippoToken, this);
+    connectShippoSignals();
     
-    connect(shippoClient, &ShippoClient::trackingError, this, [this](const QString& error) {
-        QMessageBox::warning(this, "Tracking Error", error);
-    });
+    // Refresh all packages with new client
+    refreshPackages();
 }
 
-void MainWindow::editNote()
+void MainWindow::retryFailedUpdates()
 {
-    QListWidgetItem *currentItem = packageList->currentItem();
-    if (!currentItem) return;
+    if (!shippoClient) return;
     
-    QString trackingNumber = currentItem->text();
-    QString currentNote = currentItem->data(Qt::UserRole + 1).toString();
-    
-    bool ok;
-    QString newNote = QInputDialog::getText(this, "Edit Note",
-                                          "Enter note for " + trackingNumber + ":",
-                                          QLineEdit::Normal,
-                                          currentNote, &ok);
-    if (ok) {
-        currentItem->setData(Qt::UserRole + 1, newNote);
-        packageNotes[trackingNumber] = newNote;
-        savePackages();
+    for (auto it = packages.begin(); it != packages.end(); ++it) {
+        auto& package = it.value();
+        if (package.retryCount > 0 && package.retryCount < MAX_RETRY_ATTEMPTS) {
+            scheduleUpdate(it.key());
+        }
     }
 }
 
-void MainWindow::savePackages()
+void MainWindow::processUpdateQueue()
 {
-    QStringList packages;
-    QMap<QString, QVariant> notes;
-    
-    for (int i = 0; i < packageList->count(); ++i) {
-        QListWidgetItem* item = packageList->item(i);
-        QString trackingNumber = item->text();
-        packages << trackingNumber;
-        
-        // Save all notes, even empty ones
-        QString note = item->data(Qt::UserRole + 1).toString();
-        notes[trackingNumber] = note;
+    if (isProcessingQueue || updateQueue.empty() || !shippoClient) {
+        return;
     }
     
-    QSettings settings;
-    settings.setValue("trackingNumbers", packages);
-    settings.setValue("packageNotes", notes);
-    settings.sync(); // Ensure changes are written to disk
-}
-
-void MainWindow::applyTheme(bool darkMode) {
-    QString baseStyle = R"(
-        #container {
-            border-radius: 12px;
-            border: 1px solid rgba(0, 0, 0, 0.1);
+    isProcessingQueue = true;
+    QString trackingNumber = updateQueue.front();
+    updateQueue.pop();
+    
+    auto it = packages.find(trackingNumber);
+    if (it != packages.end()) {
+        auto& package = it.value();
+        
+        if (package.lastUpdateAttempt.isValid() && 
+            package.lastUpdateAttempt.secsTo(QDateTime::currentDateTime()) < RETRY_DELAY / 1000) {
+            updateQueue.push(trackingNumber); // Re-queue for later
+        } else {
+            shippoClient->trackPackage(trackingNumber);
+            package.lastUpdateAttempt = QDateTime::currentDateTime();
         }
-        QPushButton {
-            border-radius: 5px;
-            padding: 5px 10px;
-            min-width: 60px;
-        }
-        QMenuBar::item {
-            padding: 5px 10px;
-            border-radius: 4px;
-        }
-    )";
-
-    QString lightStyle = R"(
-        QMainWindow, QDialog {
-            background-color: white;
-            color: #333333;
-        }
-        #container {
-            background-color: rgba(255, 255, 255, 0.98);
-            border: 1px solid rgba(0, 0, 0, 0.15);
-        }
-        QListWidget {
-            background-color: white;
-            border: 1px solid rgba(0, 0, 0, 0.15);
-            color: #333333;
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
-            font-size: 13px;
-        }
-        QListWidget::item:selected {
-            background-color: rgba(0, 120, 212, 0.1);
-            color: #333333;
-            border: 1px solid rgba(0, 120, 212, 0.2);
-        }
-        QTextEdit {
-            background-color: white;
-            color: #333333;
-            border: 1px solid rgba(0, 0, 0, 0.15);
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
-            font-size: 13px;
-            selection-background-color: #0078d4;
-            selection-color: white;
-        }
-        QLineEdit {
-            background-color: white;
-            color: #333333;
-            border: 1px solid rgba(0, 0, 0, 0.15);
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
-            font-size: 13px;
-            selection-background-color: #0078d4;
-            selection-color: white;
-        }
-        QPushButton {
-            background-color: #ffffff;
-            color: #333333;
-            border: 1px solid rgba(0, 0, 0, 0.15);
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
-        }
-        QPushButton:hover {
-            background-color: #f5f5f5;
-            border: 1px solid rgba(0, 0, 0, 0.2);
-        }
-        QPushButton:pressed {
-            background-color: #e5e5e5;
-        }
-        QMenuBar {
-            background-color: white;
-            color: #333333;
-            border-bottom: 1px solid rgba(0, 0, 0, 0.15);
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
-        }
-        QMenuBar::item:selected {
-            background-color: rgba(0, 0, 0, 0.1);
-        }
-    )";
-
-    QString darkStyle = R"(
-        QMainWindow, QDialog {
-            background-color: #1e1e1e;
-            color: #ffffff;
-        }
-        #container {
-            background-color: rgba(32, 32, 32, 0.98);
-            border: 1px solid rgba(255, 255, 255, 0.15);
-        }
-        QListWidget {
-            background-color: #2d2d2d;
-            border: 1px solid rgba(255, 255, 255, 0.15);
-            color: #ffffff;
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
-            font-size: 13px;
-        }
-        QListWidget::item:selected {
-            background-color: rgba(0, 120, 212, 0.3);
-            color: #ffffff;
-            border: 1px solid rgba(0, 120, 212, 0.4);
-        }
-        QTextEdit {
-            background-color: #2d2d2d;
-            color: #ffffff;
-            border: 1px solid rgba(255, 255, 255, 0.15);
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
-            font-size: 13px;
-            selection-background-color: #0078d4;
-            selection-color: white;
-        }
-        QLineEdit {
-            background-color: #2d2d2d;
-            color: #ffffff;
-            border: 1px solid rgba(255, 255, 255, 0.15);
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
-            font-size: 13px;
-            selection-background-color: #0078d4;
-            selection-color: white;
-        }
-        QPushButton {
-            background-color: #3d3d3d;
-            color: #ffffff;
-            border: 1px solid rgba(255, 255, 255, 0.15);
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
-        }
-        QPushButton:hover {
-            background-color: #4d4d4d;
-            border: 1px solid rgba(255, 255, 255, 0.2);
-        }
-        QPushButton:pressed {
-            background-color: #5d5d5d;
-        }
-        QMenuBar {
-            background-color: #1e1e1e;
-            color: #ffffff;
-            border-bottom: 1px solid rgba(255, 255, 255, 0.15);
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
-        }
-        QMenuBar::item:selected {
-            background-color: rgba(255, 255, 255, 0.1);
-        }
-    )";
-
-    setStyleSheet(baseStyle + (darkMode ? darkStyle : lightStyle));
+    }
+    
+    isProcessingQueue = false;
 }
