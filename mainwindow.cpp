@@ -339,10 +339,8 @@ void PackageItemDelegate::paint(QPainter* painter, const QStyleOptionViewItem& o
     
     // For test tracking numbers, get status from tracking number
     QString normalizedStatus = status.toUpper();
-    QString trackingNumber = index.data(Qt::DisplayRole).toString();
-    
-    if (trackingNumber.startsWith("SHIPPO_")) {
-        normalizedStatus = trackingNumber.split("_")[1];
+    if (index.data(Qt::DisplayRole).toString().startsWith("SHIPPO_")) {
+        normalizedStatus = index.data(Qt::DisplayRole).toString().split("_")[1];
     }
     
     if (normalizedStatus == "DELIVERED") {
