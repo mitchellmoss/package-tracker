@@ -36,17 +36,18 @@ void FedExClient::trackPackage(const QString& trackingNumber)
     request.setRawHeader("x-version", "1");
     request.setRawHeader("x-fedex-client-id", apiKey.toUtf8());
     request.setRawHeader("x-fedex-client-secret", apiSecret.toUtf8());
+    request.setRawHeader("User-Agent", "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36");
 
     QJsonObject trackingNumberInfo;
     trackingNumberInfo["trackingNumber"] = trackingNumber;
-    trackingNumberInfo["carrierCode"] = "FDXE"; // FedEx Express
+    trackingNumberInfo["carrierCode"] = "FDXH"; // FedEx Home Delivery
     trackingNumberInfo["shipDateBegin"] = QDate::currentDate().addDays(-45).toString("yyyy-MM-dd");
     trackingNumberInfo["shipDateEnd"] = QDate::currentDate().addDays(1).toString("yyyy-MM-dd");
 
     QJsonObject payload;
     payload["includeDetailedScans"] = true;
     payload["trackingInfo"] = QJsonArray{trackingNumberInfo};
-    payload["appDeviceType"] = "DESKTOP.BROWSER.CHROME.WINDOWS";
+    payload["appDeviceType"] = "DESKTOP.BROWSER.CHROME.MACOS";
     payload["appType"] = "WTRK";
     payload["uniqueKey"] = "";
 
