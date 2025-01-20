@@ -554,8 +554,19 @@ void MainWindow::updatePackageStatus(const QString& trackingNumber, const QStrin
         QListWidgetItem* item = packageList->item(i);
         if (item->text() == trackingNumber) {
             oldStatus = item->data(Qt::UserRole).toString();
-            item->setData(Qt::UserRole, status);
-            packageList->update(packageList->indexFromItem(item));
+            
+            // Only update if status changed
+            if (oldStatus != status) {
+                item->setData(Qt::UserRole, status);
+                packageList->update(packageList->indexFromItem(item));
+                
+                // Show notification for status changes
+                QString notificationMsg = QString("Package %1 status changed from %2 to %3")
+                    .arg(trackingNumber)
+                    .arg(oldStatus)
+                    .arg(status);
+                showNotification("Package Status Update", notificationMsg);
+            }
             break;
         }
     }
@@ -719,7 +730,14 @@ void MainWindow::updateApiClients(const QString& shippoToken)
     connect(shippoClient, &ShippoClient::trackingInfoReceived, this, [this](const QJsonObject& info) {
         QString trackingNumber = info["tracking_number"].toString();
         packageDetails[trackingNumber] = info;
-        this->showPackageDetails(trackingNumber);
+        
+        // Update the status in the list
+        updatePackageStatus(trackingNumber, info["status"].toString());
+        
+        // Show details if this is the currently selected package
+        if (packageList->currentItem() && packageList->currentItem()->text() == trackingNumber) {
+            this->showPackageDetails(trackingNumber);
+        }
     });
     
     connect(shippoClient, &ShippoClient::trackingError, this, [this](const QString& error) {
