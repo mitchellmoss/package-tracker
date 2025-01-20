@@ -20,6 +20,10 @@
 #include "shippoclient.h"
 #include "settingsdialog.h"
 
+// Forward declarations
+class ShippoClient;
+class SettingsDialog;
+
 class FrostedGlassEffect : public QGraphicsEffect
 {
     Q_OBJECT
@@ -71,7 +75,7 @@ public:
     QTextEdit *detailsView;
     
     QSettings settings;
-    ShippoClient* shippoClient;
+    ShippoClient* shippoClient = nullptr;
     QMap<QString, QJsonObject> packageDetails;
     QSystemTrayIcon* trayIcon;
     SettingsDialog* settingsDialog;

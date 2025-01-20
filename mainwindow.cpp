@@ -213,45 +213,28 @@ MainWindow::MainWindow(QWidget *parent)
             border-radius: 4px;
         }
     )");
-    // Initialize API clients with saved credentials
+    // Initialize Shippo client with saved credentials
     QSettings settings;
-    QString fedexKey = settings.value("fedexKey").toString();
-    QString fedexSecret = settings.value("fedexSecret").toString();
-    QString upsId = settings.value("upsId").toString();
-    QString upsSecret = settings.value("upsSecret").toString();
-
-    qDebug() << "Loading credentials:";
-    qDebug() << "FedEx Key:" << (fedexKey.isEmpty() ? "Not set" : "Set");
-    qDebug() << "FedEx Secret:" << (fedexSecret.isEmpty() ? "Not set" : "Set");
-    qDebug() << "UPS ID:" << (upsId.isEmpty() ? "Not set" : "Set");
-    qDebug() << "UPS Secret:" << (upsSecret.isEmpty() ? "Not set" : "Set");
-
-    fedexClient = new FedExClient(fedexKey, fedexSecret, this);
-    upsClient = new UPSClient(upsId, upsSecret, this);
+    QString shippoToken = settings.value("shippoToken").toString();
     
-    // Connect FedEx signals
-    connect(fedexClient, &FedExClient::trackingInfoReceived, this, [this](const QJsonObject& info) {
-        QString trackingNumber = info["trackingNumber"].toString();
-        packageDetails[trackingNumber] = info;
-        packageDetails[trackingNumber]["carrier"] = "FedEx";
-        updatePackageStatus(trackingNumber, info["status"].toString());
-        this->showPackageDetails(trackingNumber);
-    });
-    connect(fedexClient, &FedExClient::trackingError, this, [this](const QString& error) {
-        QMessageBox::warning(this, "FedEx Tracking Error", error);
-    });
+    qDebug() << "Loading credentials:";
+    qDebug() << "Shippo Token:" << (shippoToken.isEmpty() ? "Not set" : "Set");
 
-    // Connect UPS signals
-    connect(upsClient, &UPSClient::trackingInfoReceived, this, [this](const QJsonObject& info) {
-        QString trackingNumber = info["trackingNumber"].toString();
-        packageDetails[trackingNumber] = info;
-        packageDetails[trackingNumber]["carrier"] = "UPS";
-        updatePackageStatus(trackingNumber, info["status"].toString());
-        this->showPackageDetails(trackingNumber);
-    });
-    connect(upsClient, &UPSClient::trackingError, this, [this](const QString& error) {
-        QMessageBox::warning(this, "UPS Tracking Error", error);
-    });
+    if (!shippoToken.isEmpty()) {
+        shippoClient = new ShippoClient(shippoToken, this);
+        
+        // Connect Shippo signals
+        connect(shippoClient, &ShippoClient::trackingInfoReceived, this, [this](const QJsonObject& info) {
+            QString trackingNumber = info["tracking_number"].toString();
+            packageDetails[trackingNumber] = info;
+            updatePackageStatus(trackingNumber, info["tracking_status"].toObject()["status"].toString());
+            this->showPackageDetails(trackingNumber);
+        });
+        
+        connect(shippoClient, &ShippoClient::trackingError, this, [this](const QString& error) {
+            QMessageBox::warning(this, "Tracking Error", error);
+        });
+    }
 
     setupUI();
     setupTrayIcon();
@@ -491,29 +474,17 @@ void MainWindow::refreshPackages()
 
 QString MainWindow::detectCarrier(const QString& trackingNumber)
 {
-    // FedEx tracking number formats:
-    // - 12 digits
-    // - 14 digits starting with 96 or 98
-    // - 15 digits
-    // - 20 digits starting with 96
-    // - 22 digits
-    if (trackingNumber.length() == 12 ||
-        (trackingNumber.length() == 14 && (trackingNumber.startsWith("96") || trackingNumber.startsWith("98"))) ||
-        trackingNumber.length() == 15 ||
-        (trackingNumber.length() == 20 && trackingNumber.startsWith("96")) ||
-        trackingNumber.length() == 22) {
-        return "FedEx";
+    // Let Shippo handle carrier detection
+    if (trackingNumber.startsWith("1Z")) {
+        return "ups";
+    } else if (trackingNumber.length() == 12 || 
+               trackingNumber.startsWith("96") || 
+               trackingNumber.startsWith("98")) {
+        return "fedex";
+    } else if (trackingNumber.length() == 22) {
+        return "usps";
     }
-    
-    // UPS tracking number format:
-    // - 18 characters starting with "1Z"
-    // - 12 characters (for mail innovations)
-    if ((trackingNumber.startsWith("1Z") && trackingNumber.length() == 18) ||
-        (trackingNumber.length() == 12 && !trackingNumber.startsWith("96") && !trackingNumber.startsWith("98"))) {
-        return "UPS";
-    }
-    
-    return "Unknown";
+    return "unknown";
 }
 
 void MainWindow::showPackageDetails(QListWidgetItem *item)
@@ -623,34 +594,23 @@ void MainWindow::loadPackages()
     packageList->addItems(packages);
 }
 
-void MainWindow::updateApiClients(const QString& fedexKey, const QString& fedexSecret,
-                                 const QString& upsId, const QString& upsSecret)
+void MainWindow::updateApiClients(const QString& shippoToken)
 {
-    fedexClient->deleteLater();
-    upsClient->deleteLater();
+    if (shippoClient) {
+        shippoClient->deleteLater();
+    }
     
-    fedexClient = new FedExClient(fedexKey, fedexSecret, this);
-    upsClient = new UPSClient(upsId, upsSecret, this);
+    shippoClient = new ShippoClient(shippoToken, this);
 
-    // Reconnect signals
-    connect(fedexClient, &FedExClient::trackingInfoReceived, this, [this](const QJsonObject& info) {
-        QString trackingNumber = info["trackingNumber"].toString();
+    // Connect signals
+    connect(shippoClient, &ShippoClient::trackingInfoReceived, this, [this](const QJsonObject& info) {
+        QString trackingNumber = info["tracking_number"].toString();
         packageDetails[trackingNumber] = info;
-        packageDetails[trackingNumber]["carrier"] = "FedEx";
         this->showPackageDetails(trackingNumber);
     });
-    connect(fedexClient, &FedExClient::trackingError, this, [this](const QString& error) {
-        QMessageBox::warning(this, "FedEx Tracking Error", error);
-    });
-
-    connect(upsClient, &UPSClient::trackingInfoReceived, this, [this](const QJsonObject& info) {
-        QString trackingNumber = info["trackingNumber"].toString();
-        packageDetails[trackingNumber] = info;
-        packageDetails[trackingNumber]["carrier"] = "UPS";
-        this->showPackageDetails(trackingNumber);
-    });
-    connect(upsClient, &UPSClient::trackingError, this, [this](const QString& error) {
-        QMessageBox::warning(this, "UPS Tracking Error", error);
+    
+    connect(shippoClient, &ShippoClient::trackingError, this, [this](const QString& error) {
+        QMessageBox::warning(this, "Tracking Error", error);
     });
 }
 
