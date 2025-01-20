@@ -19,32 +19,20 @@ SettingsDialog::SettingsDialog(QWidget *parent)
     
     QPushButton* saveButton = new QPushButton("Save", this);
     connect(saveButton, &QPushButton::clicked, this, [this, parent]() {
-        QString fedexKey = fedexKeyInput->text().trimmed();
-        QString fedexSecret = fedexSecretInput->text().trimmed();
-        QString upsId = upsIdInput->text().trimmed();
-        QString upsSecret = upsSecretInput->text().trimmed();
-        if (fedexKey.isEmpty() || fedexSecret.isEmpty() || 
-            upsId.isEmpty() || upsSecret.isEmpty()) {
+        QString shippoToken = shippoTokenInput->text().trimmed();
+        if (shippoToken.isEmpty()) {
             QMessageBox::warning(this, "Invalid Credentials", 
-                "All API credentials must be filled out");
+                "Shippo API token must be provided");
             return;
         }
         
         QSettings settings;
-        settings.setValue("fedexKey", fedexKey);
-        settings.setValue("fedexSecret", fedexSecret);
-        settings.setValue("upsId", upsId);
-        settings.setValue("upsSecret", upsSecret);
+        settings.setValue("shippoToken", shippoToken);
 
-        // Update clients with new credentials
+        // Update client with new credentials
         MainWindow* mainWindow = qobject_cast<MainWindow*>(parent);
         if (mainWindow) {
-            mainWindow->updateApiClients(
-                fedexKeyInput->text(),
-                fedexSecretInput->text(),
-                upsIdInput->text(),
-                upsSecretInput->text()
-            );
+            mainWindow->updateApiClients(shippoToken);
         }
         
         accept();
@@ -52,10 +40,7 @@ SettingsDialog::SettingsDialog(QWidget *parent)
     
     // Load existing values
     QSettings settings;
-    fedexKeyInput->setText(settings.value("fedexKey").toString());
-    fedexSecretInput->setText(settings.value("fedexSecret").toString());
-    upsIdInput->setText(settings.value("upsId").toString());
-    upsSecretInput->setText(settings.value("upsSecret").toString());
+    shippoTokenInput->setText(settings.value("shippoToken").toString());
     
     mainLayout->addLayout(formLayout);
     mainLayout->addWidget(saveButton);
