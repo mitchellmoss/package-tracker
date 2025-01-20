@@ -187,6 +187,22 @@ void FedExClient::onRequestFinished(QNetworkReply* reply)
     }
 
     QJsonObject output = response["output"].toObject();
+    
+    // Check if output is empty (no tracking data found)
+    if (output.isEmpty()) {
+        if (response.contains("alerts")) {
+            QJsonArray alerts = response["alerts"].toArray();
+            QString errorMsg = "No tracking data available";
+            if (!alerts.isEmpty()) {
+                errorMsg = alerts[0].toObject()["message"].toString();
+            }
+            emit trackingError(errorMsg);
+        } else {
+            emit trackingError("No tracking data found for this number");
+        }
+        return;
+    }
+
     if (!output.contains("completeTrackResults")) {
         emit trackingError("Invalid response format - missing track results");
         return;
