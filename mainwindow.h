@@ -48,6 +48,8 @@ class MainWindow : public QMainWindow
 public:
     MainWindow(QWidget *parent = nullptr);
     ~MainWindow();
+    void updateApiClients(const QString& shippoToken);
+    void applyTheme(bool darkMode);
 
 private slots:
     void addPackage();
@@ -65,7 +67,6 @@ private:
     void loadPackages();
     void savePackages();
 public:
-    void updateApiClients(const QString& shippoToken); 
     void handleWebhookEvent(const QString& event, const QJsonObject& data);
     QString detectCarrier(const QString& trackingNumber);
     

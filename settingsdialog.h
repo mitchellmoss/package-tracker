@@ -3,6 +3,7 @@
 
 #include <QDialog>
 #include <QLineEdit>
+#include <QCheckBox>
 
 class SettingsDialog : public QDialog
 {
@@ -12,6 +13,7 @@ public:
     explicit SettingsDialog(QWidget *parent = nullptr);
     QLineEdit* shippoTokenInput;
     QLineEdit* webhookUrlInput;
+    QCheckBox* darkModeCheckbox;
     
 private:
     void setupUI();

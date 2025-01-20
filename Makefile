@@ -1491,6 +1491,8 @@ moc_mainwindow.cpp: mainwindow.h \
 		settingsdialog.h \
 		/opt/homebrew/lib/QtWidgets.framework/Headers/QDialog \
 		/opt/homebrew/lib/QtWidgets.framework/Headers/qdialog.h \
+		/opt/homebrew/lib/QtWidgets.framework/Headers/QCheckBox \
+		/opt/homebrew/lib/QtWidgets.framework/Headers/qcheckbox.h \
 		moc_predefs.h \
 		/opt/homebrew/share/qt/libexec/moc
 	/opt/homebrew/share/qt/libexec/moc $(DEFINES) --include /Users/mitchellmoss/projects/package-tracker/moc_predefs.h -I/opt/homebrew/share/qt/mkspecs/macx-clang -I/Users/mitchellmoss/projects/package-tracker -I/opt/homebrew/opt/qt/include -I/opt/homebrew/lib/QtWidgets.framework/Headers -I/opt/homebrew/lib/QtGui.framework/Headers -I/opt/homebrew/lib/QtNetwork.framework/Headers -I/opt/homebrew/lib/QtCore.framework/Headers -I/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX15.2.sdk/usr/include/c++/v1 -I/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/lib/clang/16/include -I/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX15.2.sdk/usr/include -I/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/include -F/opt/homebrew/lib mainwindow.h -o moc_mainwindow.cpp
@@ -1846,6 +1848,9 @@ moc_settingsdialog.cpp: settingsdialog.h \
 		/opt/homebrew/opt/qt/include/QtGui/qtextformat.h \
 		/opt/homebrew/opt/qt/include/QtGui/qpen.h \
 		/opt/homebrew/opt/qt/include/QtGui/qtextoption.h \
+		/opt/homebrew/lib/QtWidgets.framework/Headers/QCheckBox \
+		/opt/homebrew/lib/QtWidgets.framework/Headers/qcheckbox.h \
+		/opt/homebrew/opt/qt/include/QtWidgets/qabstractbutton.h \
 		moc_predefs.h \
 		/opt/homebrew/share/qt/libexec/moc
 	/opt/homebrew/share/qt/libexec/moc $(DEFINES) --include /Users/mitchellmoss/projects/package-tracker/moc_predefs.h -I/opt/homebrew/share/qt/mkspecs/macx-clang -I/Users/mitchellmoss/projects/package-tracker -I/opt/homebrew/opt/qt/include -I/opt/homebrew/lib/QtWidgets.framework/Headers -I/opt/homebrew/lib/QtGui.framework/Headers -I/opt/homebrew/lib/QtNetwork.framework/Headers -I/opt/homebrew/lib/QtCore.framework/Headers -I/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX15.2.sdk/usr/include/c++/v1 -I/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/lib/clang/16/include -I/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX15.2.sdk/usr/include -I/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/include -F/opt/homebrew/lib settingsdialog.h -o moc_settingsdialog.cpp
@@ -2151,7 +2156,9 @@ main.o: main.cpp /opt/homebrew/lib/QtWidgets.framework/Headers/QApplication \
 		/opt/homebrew/opt/qt/include/QtNetwork/qnetworkaccessmanager.h \
 		settingsdialog.h \
 		/opt/homebrew/lib/QtWidgets.framework/Headers/QDialog \
-		/opt/homebrew/lib/QtWidgets.framework/Headers/qdialog.h
+		/opt/homebrew/lib/QtWidgets.framework/Headers/qdialog.h \
+		/opt/homebrew/lib/QtWidgets.framework/Headers/QCheckBox \
+		/opt/homebrew/lib/QtWidgets.framework/Headers/qcheckbox.h
 	$(CXX) -c $(CXXFLAGS) $(INCPATH) -o main.o main.cpp
 
 mainwindow.o: mainwindow.cpp mainwindow.h \
@@ -2436,6 +2443,8 @@ mainwindow.o: mainwindow.cpp mainwindow.h \
 		settingsdialog.h \
 		/opt/homebrew/lib/QtWidgets.framework/Headers/QDialog \
 		/opt/homebrew/lib/QtWidgets.framework/Headers/qdialog.h \
+		/opt/homebrew/lib/QtWidgets.framework/Headers/QCheckBox \
+		/opt/homebrew/lib/QtWidgets.framework/Headers/qcheckbox.h \
 		/opt/homebrew/lib/QtWidgets.framework/Headers/QMessageBox \
 		/opt/homebrew/lib/QtWidgets.framework/Headers/qmessagebox.h \
 		/opt/homebrew/opt/qt/include/QtWidgets/qdialog.h \
@@ -2853,6 +2862,9 @@ settingsdialog.o: settingsdialog.cpp settingsdialog.h \
 		/opt/homebrew/opt/qt/include/QtGui/qtextformat.h \
 		/opt/homebrew/opt/qt/include/QtGui/qpen.h \
 		/opt/homebrew/opt/qt/include/QtGui/qtextoption.h \
+		/opt/homebrew/lib/QtWidgets.framework/Headers/QCheckBox \
+		/opt/homebrew/lib/QtWidgets.framework/Headers/qcheckbox.h \
+		/opt/homebrew/opt/qt/include/QtWidgets/qabstractbutton.h \
 		mainwindow.h \
 		/opt/homebrew/lib/QtWidgets.framework/Headers/QMainWindow \
 		/opt/homebrew/lib/QtWidgets.framework/Headers/qmainwindow.h \
@@ -2876,7 +2888,6 @@ settingsdialog.o: settingsdialog.cpp settingsdialog.h \
 		/opt/homebrew/opt/qt/include/QtWidgets/qrubberband.h \
 		/opt/homebrew/lib/QtWidgets.framework/Headers/QPushButton \
 		/opt/homebrew/lib/QtWidgets.framework/Headers/qpushbutton.h \
-		/opt/homebrew/opt/qt/include/QtWidgets/qabstractbutton.h \
 		/opt/homebrew/lib/QtWidgets.framework/Headers/QTextEdit \
 		/opt/homebrew/lib/QtWidgets.framework/Headers/qtextedit.h \
 		/opt/homebrew/lib/QtCore.framework/Headers/QSettings \

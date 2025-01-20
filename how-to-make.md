@@ -1,0 +1,1 @@
+ make clean && qmake -spec macx-clang package-tracker.pro && make && PackageTracker.app/Contents/MacOS/PackageTracker -platform cocoa    

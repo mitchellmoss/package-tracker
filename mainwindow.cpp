@@ -246,6 +246,9 @@ MainWindow::MainWindow(QWidget *parent)
         connect(shippoClient, &ShippoClient::webhookReceived, this, &MainWindow::handleWebhookEvent);
     }
 
+    bool darkMode = settings.value("darkMode", false).toBool();
+    applyTheme(darkMode);
+
     setupUI();
     setupTrayIcon();
     loadPackages();
@@ -799,4 +802,73 @@ void MainWindow::savePackages()
     settings.setValue("trackingNumbers", packages);
     settings.setValue("packageNotes", notes);
     settings.sync(); // Ensure changes are written to disk
+}
+
+void MainWindow::applyTheme(bool darkMode) {
+    QString baseStyle = R"(
+        #container {
+            border-radius: 12px;
+            border: 1px solid rgba(0, 0, 0, 0.1);
+        }
+    )";
+
+    QString lightStyle = R"(
+        QMainWindow, QDialog {
+            background-color: white;
+        }
+        QListWidget {
+            background-color: white;
+            border: 1px solid rgba(0, 0, 0, 0.08);
+            color: black;
+        }
+        QListWidget::item:selected {
+            background-color: rgba(0, 120, 212, 0.1);
+            color: black;
+        }
+        QTextEdit, QLineEdit {
+            background-color: white;
+            color: black;
+            border: 1px solid rgba(0, 0, 0, 0.08);
+        }
+        QPushButton {
+            background-color: rgba(255, 255, 255, 0.9);
+            color: black;
+            border: 1px solid rgba(0, 0, 0, 0.1);
+        }
+        QMenuBar {
+            background-color: white;
+            color: black;
+        }
+    )";
+
+    QString darkStyle = R"(
+        QMainWindow, QDialog {
+            background-color: rgb(32, 32, 32);
+        }
+        QListWidget {
+            background-color: rgb(45, 45, 45);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            color: white;
+        }
+        QListWidget::item:selected {
+            background-color: rgba(0, 120, 212, 0.3);
+            color: white;
+        }
+        QTextEdit, QLineEdit {
+            background-color: rgb(45, 45, 45);
+            color: white;
+            border: 1px solid rgba(255, 255, 255, 0.08);
+        }
+        QPushButton {
+            background-color: rgba(60, 60, 60, 0.9);
+            color: white;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        QMenuBar {
+            background-color: rgb(32, 32, 32);
+            color: white;
+        }
+    )";
+
+    setStyleSheet(baseStyle + (darkMode ? darkStyle : lightStyle));
 }
