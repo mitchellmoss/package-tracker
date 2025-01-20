@@ -314,8 +314,9 @@ void PackageItemDelegate::paint(QPainter* painter, const QStyleOptionViewItem& o
     QStyleOptionViewItem opt = option;
     initStyleOption(&opt, index);
     
-    // Get the status from the item's data
+    // Get the status and note from the item's data
     QString status = index.data(Qt::UserRole).toString();
+    QString note = index.data(Qt::UserRole + 1).toString();
     
     // Draw the background
     QStyle* style = opt.widget ? opt.widget->style() : QApplication::style();
@@ -327,10 +328,16 @@ void PackageItemDelegate::paint(QPainter* painter, const QStyleOptionViewItem& o
     
     // Draw the status icon
     QColor statusColor;
-    if (status == "Delivered") {
+    if (status == "DELIVERED") {
         statusColor = QColor("#27ae60"); // Green
-    } else if (status == "In Transit") {
+    } else if (status == "TRANSIT") {
         statusColor = QColor("#f39c12"); // Orange
+    } else if (status == "PRE_TRANSIT") {
+        statusColor = QColor("#3498db"); // Blue
+    } else if (status == "FAILURE") {
+        statusColor = QColor("#e74c3c"); // Red
+    } else if (status == "RETURNED") {
+        statusColor = QColor("#9b59b6"); // Purple
     } else {
         statusColor = QColor("#95a5a6"); // Gray
     }
