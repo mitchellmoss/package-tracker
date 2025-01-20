@@ -24,7 +24,6 @@ void ShippoClient::trackPackage(const QString& trackingNumber)
     
     qDebug() << "Tracking package:" << trackingNumber;
     qDebug() << "URL:" << url.toString();
-    qDebug() << "Auth header:" << authHeader;
     
     // Always use POST with carrier and tracking number for consistency
     QJsonObject postData;
