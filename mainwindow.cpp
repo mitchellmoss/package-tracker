@@ -362,7 +362,7 @@ void MainWindow::setupUI()
     // Input area
     QHBoxLayout *inputLayout = new QHBoxLayout();
     trackingInput = new QLineEdit(this);
-    trackingInput->setPlaceholderText("Enter tracking number...");
+    trackingInput->setPlaceholderText("Enter tracking number (e.g. SHIPPO_TRANSIT, SHIPPO_DELIVERED)...");
     
     addButton = new QPushButton("Add", this);
     removeButton = new QPushButton("Remove", this);
@@ -468,15 +468,9 @@ void MainWindow::refreshPackages()
 
 QString MainWindow::detectCarrier(const QString& trackingNumber)
 {
-    // Let Shippo handle carrier detection
-    if (trackingNumber.startsWith("1Z")) {
-        return "ups";
-    } else if (trackingNumber.length() == 12 || 
-               trackingNumber.startsWith("96") || 
-               trackingNumber.startsWith("98")) {
-        return "fedex";
-    } else if (trackingNumber.length() == 22) {
-        return "usps";
+    // Use Shippo test tracking numbers
+    if (trackingNumber.startsWith("SHIPPO_")) {
+        return "shippo";
     }
     return "unknown";
 }

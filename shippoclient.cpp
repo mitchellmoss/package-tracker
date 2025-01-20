@@ -15,7 +15,13 @@ ShippoClient::ShippoClient(const QString& apiToken, QObject *parent)
 
 void ShippoClient::trackPackage(const QString& trackingNumber)
 {
-    QUrl url(QString("https://api.goshippo.com/tracks/%1").arg(trackingNumber));
+    // For test tracking numbers, we need to create a new tracking request
+    QUrl url;
+    if (trackingNumber.startsWith("SHIPPO_")) {
+        url = QUrl("https://api.goshippo.com/tracks/");
+    } else {
+        url = QUrl(QString("https://api.goshippo.com/tracks/%1").arg(trackingNumber));
+    }
     QNetworkRequest request(url);
     
     QString authHeader = QString("ShippoToken %1").arg(apiToken);
@@ -25,7 +31,17 @@ void ShippoClient::trackPackage(const QString& trackingNumber)
     qDebug() << "Tracking package:" << trackingNumber;
     qDebug() << "URL:" << url.toString();
     qDebug() << "Auth header:" << authHeader;
-    manager->get(request);
+    
+    if (trackingNumber.startsWith("SHIPPO_")) {
+        // For test tracking, we need to POST with carrier and tracking number
+        QJsonObject postData;
+        postData["carrier"] = "shippo";
+        postData["tracking_number"] = trackingNumber;
+        QJsonDocument doc(postData);
+        manager->post(request, doc.toJson());
+    } else {
+        manager->get(request);
+    }
 }
 
 void ShippoClient::onRequestFinished(QNetworkReply* reply)
