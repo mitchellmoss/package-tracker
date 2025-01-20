@@ -27,18 +27,25 @@ void FedExClient::trackPackage(const QString& trackingNumber)
     QNetworkRequest request(url);
     request.setRawHeader("Authorization", ("Bearer " + token).toUtf8());
     request.setHeader(QNetworkRequest::ContentTypeHeader, "application/json");
+    request.setRawHeader("Accept", "application/json");
     
     // Add required headers
     QString transactionId = QUuid::createUuid().toString();
     request.setRawHeader("x-customer-transaction-id", transactionId.toUtf8());
     request.setRawHeader("x-locale", "en_US");
+    request.setRawHeader("x-version", "1");
 
     QJsonObject trackingNumberInfo;
     trackingNumberInfo["trackingNumber"] = trackingNumber;
+    trackingNumberInfo["shipDateBegin"] = "2024-01-01";  // Add a date range
+    trackingNumberInfo["shipDateEnd"] = "2025-01-31";    // to help find the package
 
     QJsonObject payload;
     payload["includeDetailedScans"] = true;
     payload["trackingInfo"] = QJsonArray{trackingNumberInfo};
+    payload["appType"] = "WTRK";  // Web Tracking
+    payload["appDeviceType"] = "DESKTOP";
+    payload["uniqueKey"] = "";
 
     QByteArray jsonData = QJsonDocument(payload).toJson();
     
