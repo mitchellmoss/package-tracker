@@ -113,7 +113,6 @@ QString FedExClient::getAuthToken()
         return QString();
     }
 
-    QByteArray responseData = reply->readAll();
     qDebug() << "Raw FedEx auth response:" << responseData;
     
     QJsonParseError parseError;
