@@ -810,63 +810,140 @@ void MainWindow::applyTheme(bool darkMode) {
             border-radius: 12px;
             border: 1px solid rgba(0, 0, 0, 0.1);
         }
+        QPushButton {
+            border-radius: 5px;
+            padding: 5px 10px;
+            min-width: 60px;
+        }
+        QMenuBar::item {
+            padding: 5px 10px;
+            border-radius: 4px;
+        }
     )";
 
     QString lightStyle = R"(
         QMainWindow, QDialog {
             background-color: white;
+            color: #333333;
+        }
+        #container {
+            background-color: rgba(255, 255, 255, 0.98);
+            border: 1px solid rgba(0, 0, 0, 0.15);
         }
         QListWidget {
             background-color: white;
-            border: 1px solid rgba(0, 0, 0, 0.08);
-            color: black;
+            border: 1px solid rgba(0, 0, 0, 0.15);
+            color: #333333;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
+            font-size: 13px;
         }
         QListWidget::item:selected {
             background-color: rgba(0, 120, 212, 0.1);
-            color: black;
+            color: #333333;
+            border: 1px solid rgba(0, 120, 212, 0.2);
         }
-        QTextEdit, QLineEdit {
+        QTextEdit {
             background-color: white;
-            color: black;
-            border: 1px solid rgba(0, 0, 0, 0.08);
+            color: #333333;
+            border: 1px solid rgba(0, 0, 0, 0.15);
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
+            font-size: 13px;
+            selection-background-color: #0078d4;
+            selection-color: white;
+        }
+        QLineEdit {
+            background-color: white;
+            color: #333333;
+            border: 1px solid rgba(0, 0, 0, 0.15);
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
+            font-size: 13px;
+            selection-background-color: #0078d4;
+            selection-color: white;
         }
         QPushButton {
-            background-color: rgba(255, 255, 255, 0.9);
-            color: black;
-            border: 1px solid rgba(0, 0, 0, 0.1);
+            background-color: #ffffff;
+            color: #333333;
+            border: 1px solid rgba(0, 0, 0, 0.15);
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
+        }
+        QPushButton:hover {
+            background-color: #f5f5f5;
+            border: 1px solid rgba(0, 0, 0, 0.2);
+        }
+        QPushButton:pressed {
+            background-color: #e5e5e5;
         }
         QMenuBar {
             background-color: white;
-            color: black;
+            color: #333333;
+            border-bottom: 1px solid rgba(0, 0, 0, 0.15);
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
+        }
+        QMenuBar::item:selected {
+            background-color: rgba(0, 0, 0, 0.1);
         }
     )";
 
     QString darkStyle = R"(
         QMainWindow, QDialog {
-            background-color: rgb(32, 32, 32);
+            background-color: #1e1e1e;
+            color: #ffffff;
+        }
+        #container {
+            background-color: rgba(32, 32, 32, 0.98);
+            border: 1px solid rgba(255, 255, 255, 0.15);
         }
         QListWidget {
-            background-color: rgb(45, 45, 45);
-            border: 1px solid rgba(255, 255, 255, 0.08);
-            color: white;
+            background-color: #2d2d2d;
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            color: #ffffff;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
+            font-size: 13px;
         }
         QListWidget::item:selected {
             background-color: rgba(0, 120, 212, 0.3);
-            color: white;
+            color: #ffffff;
+            border: 1px solid rgba(0, 120, 212, 0.4);
         }
-        QTextEdit, QLineEdit {
-            background-color: rgb(45, 45, 45);
-            color: white;
-            border: 1px solid rgba(255, 255, 255, 0.08);
+        QTextEdit {
+            background-color: #2d2d2d;
+            color: #ffffff;
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
+            font-size: 13px;
+            selection-background-color: #0078d4;
+            selection-color: white;
+        }
+        QLineEdit {
+            background-color: #2d2d2d;
+            color: #ffffff;
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
+            font-size: 13px;
+            selection-background-color: #0078d4;
+            selection-color: white;
         }
         QPushButton {
-            background-color: rgba(60, 60, 60, 0.9);
-            color: white;
-            border: 1px solid rgba(255, 255, 255, 0.1);
+            background-color: #3d3d3d;
+            color: #ffffff;
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
+        }
+        QPushButton:hover {
+            background-color: #4d4d4d;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+        QPushButton:pressed {
+            background-color: #5d5d5d;
         }
         QMenuBar {
-            background-color: rgb(32, 32, 32);
-            color: white;
+            background-color: #1e1e1e;
+            color: #ffffff;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.15);
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
+        }
+        QMenuBar::item:selected {
+            background-color: rgba(255, 255, 255, 0.1);
         }
     )";
 
