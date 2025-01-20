@@ -2444,6 +2444,9 @@ mainwindow.o: mainwindow.cpp mainwindow.h \
 		/opt/homebrew/lib/QtGui.framework/Headers/qpainter.h \
 		/opt/homebrew/lib/QtWidgets.framework/Headers/QApplication \
 		/opt/homebrew/lib/QtWidgets.framework/Headers/qapplication.h \
+		/opt/homebrew/lib/QtWidgets.framework/Headers/QInputDialog \
+		/opt/homebrew/lib/QtWidgets.framework/Headers/qinputdialog.h \
+		/opt/homebrew/opt/qt/include/QtWidgets/qlineedit.h \
 		/opt/homebrew/lib/QtWidgets.framework/Headers/QGraphicsBlurEffect \
 		/opt/homebrew/lib/QtWidgets.framework/Headers/QGraphicsPixmapItem \
 		/opt/homebrew/lib/QtWidgets.framework/Headers/qgraphicsitem.h \

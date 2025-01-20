@@ -1,1 +1,10 @@
  make clean && qmake -spec macx-clang package-tracker.pro && make && PackageTracker.app/Contents/MacOS/PackageTracker -platform cocoa                                                                              
+
+Fedex Prod secret key 0d90ce531ace42ccb9ab087c560799a6
+
+Sandbox Jan 19, 2025	l725de2b78cf3442138b1d0c8b83f478e1
+
+70ca5ec876b341ed9b9dfa4346909d57Show Icon	Global	740561073 
+
+
+Ship test API key: shippo_test_94fd0f4e83755f9d4dfbe2fb8b9720b0afd9ff0b
