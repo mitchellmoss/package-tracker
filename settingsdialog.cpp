@@ -14,15 +14,8 @@ SettingsDialog::SettingsDialog(QWidget *parent)
     QVBoxLayout* mainLayout = new QVBoxLayout(this);
     QFormLayout* formLayout = new QFormLayout();
     
-    fedexKeyInput = new QLineEdit(this);
-    fedexSecretInput = new QLineEdit(this);
-    upsIdInput = new QLineEdit(this);
-    upsSecretInput = new QLineEdit(this);
-    
-    formLayout->addRow("FedEx API Key:", fedexKeyInput);
-    formLayout->addRow("FedEx API Secret:", fedexSecretInput);
-    formLayout->addRow("UPS Client ID:", upsIdInput);
-    formLayout->addRow("UPS Client Secret:", upsSecretInput);
+    shippoTokenInput = new QLineEdit(this);
+    formLayout->addRow("Shippo API Token:", shippoTokenInput);
     
     QPushButton* saveButton = new QPushButton("Save", this);
     connect(saveButton, &QPushButton::clicked, this, [this, parent]() {

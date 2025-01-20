@@ -9,13 +9,11 @@ DEFINES += SHIPPO_API_BASE_URL=\\\"https://api.goshippo.com\\\"
 
 SOURCES += main.cpp \
            mainwindow.cpp \
-           fedexclient.cpp \
-           upsclient.cpp \
+           shippoclient.cpp \
            settingsdialog.cpp
 
 HEADERS += mainwindow.h \
-           fedexclient.h \
-           upsclient.h \
+           shippoclient.h \
            settingsdialog.h
 
 # macOS specific configuration

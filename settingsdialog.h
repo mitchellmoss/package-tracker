@@ -12,10 +12,7 @@ public:
     explicit SettingsDialog(QWidget *parent = nullptr);
 
 public:
-    QLineEdit* fedexKeyInput;
-    QLineEdit* fedexSecretInput;
-    QLineEdit* upsIdInput;
-    QLineEdit* upsSecretInput;
+    QLineEdit* shippoTokenInput;
 };
 
 #endif // SETTINGSDIALOG_H
