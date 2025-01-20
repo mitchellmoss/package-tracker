@@ -16,6 +16,7 @@
 #include <QHBoxLayout>
 #include <QToolButton>
 #include <QMouseEvent>
+#include <QStyledItemDelegate>
 #include "fedexclient.h"
 #include "upsclient.h"
 #include "settingsdialog.h"
@@ -27,6 +28,14 @@ public:
     FrostedGlassEffect(QObject* parent = nullptr) : QGraphicsEffect(parent) {}
 protected:
     void draw(QPainter* painter) override;
+};
+
+class PackageItemDelegate : public QStyledItemDelegate {
+    Q_OBJECT
+public:
+    explicit PackageItemDelegate(QObject* parent = nullptr);
+    void paint(QPainter* painter, const QStyleOptionViewItem& option, const QModelIndex& index) const override;
+    QSize sizeHint(const QStyleOptionViewItem& option, const QModelIndex& index) const override;
 };
 
 class MainWindow : public QMainWindow

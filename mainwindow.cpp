@@ -233,6 +233,7 @@ MainWindow::MainWindow(QWidget *parent)
         QString trackingNumber = info["trackingNumber"].toString();
         packageDetails[trackingNumber] = info;
         packageDetails[trackingNumber]["carrier"] = "FedEx";
+        updatePackageStatus(trackingNumber, info["status"].toString());
         this->showPackageDetails(trackingNumber);
     });
     connect(fedexClient, &FedExClient::trackingError, this, [this](const QString& error) {
@@ -244,6 +245,7 @@ MainWindow::MainWindow(QWidget *parent)
         QString trackingNumber = info["trackingNumber"].toString();
         packageDetails[trackingNumber] = info;
         packageDetails[trackingNumber]["carrier"] = "UPS";
+        updatePackageStatus(trackingNumber, info["status"].toString());
         this->showPackageDetails(trackingNumber);
     });
     connect(upsClient, &UPSClient::trackingError, this, [this](const QString& error) {
@@ -316,6 +318,61 @@ void MainWindow::mouseReleaseEvent(QMouseEvent* event)
     }
 }
 
+PackageItemDelegate::PackageItemDelegate(QObject* parent) : QStyledItemDelegate(parent) {}
+
+void PackageItemDelegate::paint(QPainter* painter, const QStyleOptionViewItem& option, const QModelIndex& index) const
+{
+    QStyleOptionViewItem opt = option;
+    initStyleOption(&opt, index);
+    
+    // Get the status from the item's data
+    QString status = index.data(Qt::UserRole).toString();
+    
+    // Draw the background
+    QStyle* style = opt.widget ? opt.widget->style() : QApplication::style();
+    style->drawPrimitive(QStyle::PE_PanelItemViewItem, &opt, painter, opt.widget);
+    
+    // Calculate text and icon positions
+    QRect rect = opt.rect;
+    int padding = 4;
+    
+    // Draw the status icon
+    QColor statusColor;
+    if (status == "Delivered") {
+        statusColor = QColor("#27ae60"); // Green
+    } else if (status == "In Transit") {
+        statusColor = QColor("#f39c12"); // Orange
+    } else {
+        statusColor = QColor("#95a5a6"); // Gray
+    }
+    
+    QRect iconRect = rect;
+    iconRect.setWidth(16);
+    iconRect.setHeight(16);
+    iconRect.moveTop(rect.top() + (rect.height() - iconRect.height()) / 2);
+    iconRect.moveLeft(rect.left() + padding);
+    
+    painter->save();
+    painter->setRenderHint(QPainter::Antialiasing);
+    painter->setPen(Qt::NoPen);
+    painter->setBrush(statusColor);
+    painter->drawEllipse(iconRect);
+    painter->restore();
+    
+    // Draw the text
+    QRect textRect = rect;
+    textRect.setLeft(iconRect.right() + padding * 2);
+    QString text = index.data(Qt::DisplayRole).toString();
+    painter->drawText(textRect, Qt::AlignVCenter, text);
+}
+
+QSize PackageItemDelegate::sizeHint(const QStyleOptionViewItem& option, const QModelIndex& index) const
+{
+    QSize size = QStyledItemDelegate::sizeHint(option, index);
+    size.setHeight(size.height() + 8); // Add some vertical padding
+    return size;
+}
+
 void MainWindow::setupUI()
 {
     // Input area
@@ -334,6 +391,7 @@ void MainWindow::setupUI()
     
     // Package list
     packageList = new QListWidget(this);
+    packageList->setItemDelegate(new PackageItemDelegate(packageList));
     
     // Details view
     detailsView = new QTextEdit(this);
@@ -397,7 +455,9 @@ void MainWindow::addPackage()
 {
     QString trackingNumber = trackingInput->text().trimmed();
     if (!trackingNumber.isEmpty()) {
-        packageList->addItem(trackingNumber);
+        QListWidgetItem* item = new QListWidgetItem(trackingNumber);
+        item->setData(Qt::UserRole, "Pending");
+        packageList->addItem(item);
         trackingInput->clear();
         savePackages();
     }
@@ -444,6 +504,19 @@ QString MainWindow::detectCarrier(const QString& trackingNumber)
 void MainWindow::showPackageDetails(QListWidgetItem *item)
 {
     this->showPackageDetails(item->text());
+}
+
+void MainWindow::updatePackageStatus(const QString& trackingNumber, const QString& status)
+{
+    // Find and update the list item
+    for (int i = 0; i < packageList->count(); ++i) {
+        QListWidgetItem* item = packageList->item(i);
+        if (item->text() == trackingNumber) {
+            item->setData(Qt::UserRole, status);
+            packageList->update(packageList->indexFromItem(item));
+            break;
+        }
+    }
 }
 
 void MainWindow::showPackageDetails(const QString& trackingNumber)
