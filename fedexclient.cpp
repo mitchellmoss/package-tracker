@@ -37,15 +37,13 @@ void FedExClient::trackPackage(const QString& trackingNumber)
 
     QJsonObject trackingNumberInfo;
     trackingNumberInfo["trackingNumber"] = trackingNumber;
-    trackingNumberInfo["shipDateBegin"] = "2024-01-01";  // Add a date range
-    trackingNumberInfo["shipDateEnd"] = "2025-01-31";    // to help find the package
+    trackingNumberInfo["carrierCode"] = "FDXE"; // FedEx Express
+    trackingNumberInfo["shipDateBegin"] = QDate::currentDate().addDays(-30).toString("yyyy-MM-dd");
+    trackingNumberInfo["shipDateEnd"] = QDate::currentDate().addDays(1).toString("yyyy-MM-dd");
 
     QJsonObject payload;
     payload["includeDetailedScans"] = true;
     payload["trackingInfo"] = QJsonArray{trackingNumberInfo};
-    payload["appType"] = "WTRK";  // Web Tracking
-    payload["appDeviceType"] = "DESKTOP";
-    payload["uniqueKey"] = "";
 
     QByteArray jsonData = QJsonDocument(payload).toJson();
     
@@ -188,6 +186,23 @@ void FedExClient::onRequestFinished(QNetworkReply* reply)
     QJsonObject result;
     QJsonObject response = doc.object();
     
+    // Check for alerts first
+    if (response.contains("alerts")) {
+        QJsonArray alerts = response["alerts"].toArray();
+        if (!alerts.isEmpty()) {
+            QString errorMsg;
+            for (const QJsonValue& alert : alerts) {
+                if (alert.isString()) {
+                    errorMsg += alert.toString() + "\n";
+                } else if (alert.isObject()) {
+                    errorMsg += alert.toObject()["message"].toString() + "\n";
+                }
+            }
+            emit trackingError(errorMsg.trimmed());
+            return;
+        }
+    }
+
     if (!response.contains("output")) {
         emit trackingError("Invalid response format - missing output");
         return;
@@ -197,16 +212,7 @@ void FedExClient::onRequestFinished(QNetworkReply* reply)
     
     // Check if output is empty (no tracking data found)
     if (output.isEmpty()) {
-        if (response.contains("alerts")) {
-            QJsonArray alerts = response["alerts"].toArray();
-            QString errorMsg = "No tracking data available";
-            if (!alerts.isEmpty()) {
-                errorMsg = alerts[0].toObject()["message"].toString();
-            }
-            emit trackingError(errorMsg);
-        } else {
-            emit trackingError("No tracking data found for this number");
-        }
+        emit trackingError("No tracking data found for this number");
         return;
     }
 
@@ -233,9 +239,22 @@ void FedExClient::onRequestFinished(QNetworkReply* reply)
 
     result["trackingNumber"] = trackResult["trackingNumber"].toString();
     
+    // Get latest status
     if (trackResult.contains("latestStatusDetail")) {
         QJsonObject status = trackResult["latestStatusDetail"].toObject();
         result["status"] = status["description"].toString();
+        
+        // Check for delay details
+        if (status.contains("delayDetail")) {
+            QJsonObject delay = status["delayDetail"].toObject();
+            QString delayStatus = delay["status"].toString();
+            if (delayStatus == "DELAYED") {
+                result["delay"] = QJsonObject{
+                    {"type", delay["type"].toString()},
+                    {"subType", delay["subType"].toString()}
+                };
+            }
+        }
     }
 
     QJsonArray events;
