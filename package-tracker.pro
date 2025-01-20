@@ -7,6 +7,9 @@ CONFIG += ssl
 # Network configuration for Shippo API
 DEFINES += SHIPPO_API_BASE_URL=\\\"https://api.goshippo.com\\\"
 
+# Add icon - use absolute path
+ICON = $$PWD/icons/app.icns
+
 SOURCES += main.cpp \
            mainwindow.cpp \
            shippoclient.cpp \
