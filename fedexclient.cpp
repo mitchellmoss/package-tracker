@@ -49,16 +49,16 @@ QString FedExClient::getAuthToken()
     QNetworkRequest request(url);
     request.setHeader(QNetworkRequest::ContentTypeHeader, "application/x-www-form-urlencoded");
 
-    // Create proper Basic Auth header
-    QString auth = QString("%1:%2").arg(apiKey).arg(apiSecret);
-    QString authHeader = "Basic " + auth.toUtf8().toBase64();
-    request.setRawHeader("Authorization", authHeader.toUtf8());
+    // Create form data - no Basic Auth header needed
+    QByteArray postData;
+    postData.append("grant_type=client_credentials");
+    postData.append("&client_id=" + QUrl::toPercentEncoding(apiKey));
+    postData.append("&client_secret=" + QUrl::toPercentEncoding(apiSecret));
 
-    // Create form data
-    QUrlQuery params;
-    params.addQueryItem("grant_type", "client_credentials");
+    qDebug() << "FedEx Auth Request URL:" << url.toString();
+    qDebug() << "FedEx Auth Request Data:" << postData;
 
-    QNetworkReply* reply = manager->post(request, params.toString(QUrl::FullyEncoded).toUtf8());
+    QNetworkReply* reply = manager->post(request, postData);
     
     // Wait for reply with timeout
     QEventLoop loop;
@@ -76,7 +76,7 @@ QString FedExClient::getAuthToken()
     }
 
     QByteArray responseData = reply->readAll();
-    qDebug() << "Raw UPS auth response:" << responseData;
+    qDebug() << "Raw FedEx auth response:" << responseData;
     
     QJsonParseError parseError;
     QJsonDocument doc = QJsonDocument::fromJson(responseData, &parseError);
