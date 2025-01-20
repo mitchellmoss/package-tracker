@@ -85,11 +85,48 @@ void ShippoClient::onRequestFinished(QNetworkReply* reply)
     
     // Get tracking status
     QJsonObject trackingStatus = response["tracking_status"].toObject();
-    result["status"] = trackingStatus["status"].toString();
+    QString status = trackingStatus["status"].toString();
     
-    // Include substatus if available
+    // Map status to our enum
+    if (status == "PRE_TRANSIT") result["status"] = "PRE_TRANSIT";
+    else if (status == "TRANSIT") result["status"] = "TRANSIT";
+    else if (status == "DELIVERED") result["status"] = "DELIVERED";
+    else if (status == "RETURNED") result["status"] = "RETURNED";
+    else if (status == "FAILURE") result["status"] = "FAILURE";
+    else result["status"] = "UNKNOWN";
+    
+    // Map substatus if available
     if (!trackingStatus["substatus"].isNull()) {
-        result["substatus"] = trackingStatus["substatus"].toString();
+        QString substatus = trackingStatus["substatus"].toString();
+        
+        // Map known substatuses
+        if (substatus == "information_received") result["substatus"] = "INFORMATION_RECEIVED";
+        else if (substatus == "address_issue") result["substatus"] = "ADDRESS_ISSUE";
+        else if (substatus == "contact_carrier") result["substatus"] = "CONTACT_CARRIER";
+        else if (substatus == "delayed") result["substatus"] = "DELAYED";
+        else if (substatus == "delivery_attempted") result["substatus"] = "DELIVERY_ATTEMPTED";
+        else if (substatus == "delivery_rescheduled") result["substatus"] = "DELIVERY_RESCHEDULED";
+        else if (substatus == "delivery_scheduled") result["substatus"] = "DELIVERY_SCHEDULED";
+        else if (substatus == "location_inaccessible") result["substatus"] = "LOCATION_INACCESSIBLE";
+        else if (substatus == "notice_left") result["substatus"] = "NOTICE_LEFT";
+        else if (substatus == "out_for_delivery") result["substatus"] = "OUT_FOR_DELIVERY";
+        else if (substatus == "package_accepted") result["substatus"] = "PACKAGE_ACCEPTED";
+        else if (substatus == "package_arrived") result["substatus"] = "PACKAGE_ARRIVED";
+        else if (substatus == "package_damaged") result["substatus"] = "PACKAGE_DAMAGED";
+        else if (substatus == "package_departed") result["substatus"] = "PACKAGE_DEPARTED";
+        else if (substatus == "package_forwarded") result["substatus"] = "PACKAGE_FORWARDED";
+        else if (substatus == "package_held") result["substatus"] = "PACKAGE_HELD";
+        else if (substatus == "package_processed") result["substatus"] = "PACKAGE_PROCESSED";
+        else if (substatus == "package_processing") result["substatus"] = "PACKAGE_PROCESSING";
+        else if (substatus == "pickup_available") result["substatus"] = "PICKUP_AVAILABLE";
+        else if (substatus == "reschedule_delivery") result["substatus"] = "RESCHEDULE_DELIVERY";
+        else if (substatus == "delivered") result["substatus"] = "DELIVERED";
+        else if (substatus == "return_to_sender") result["substatus"] = "RETURN_TO_SENDER";
+        else if (substatus == "package_unclaimed") result["substatus"] = "PACKAGE_UNCLAIMED";
+        else if (substatus == "package_undeliverable") result["substatus"] = "PACKAGE_UNDELIVERABLE";
+        else if (substatus == "package_disposed") result["substatus"] = "PACKAGE_DISPOSED";
+        else if (substatus == "package_lost") result["substatus"] = "PACKAGE_LOST";
+        else result["substatus"] = "OTHER";
     }
     
     if (response.contains("eta")) {
