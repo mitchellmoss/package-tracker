@@ -6,6 +6,7 @@
 #include <QSettings>
 #include <QMessageBox>
 #include <QCheckBox>
+#include <QLabel>
 
 SettingsDialog::SettingsDialog(QWidget *parent)
     : QDialog(parent)
@@ -19,11 +20,18 @@ SettingsDialog::SettingsDialog(QWidget *parent)
     webhookUrlInput = new QLineEdit(this);
     darkModeCheckbox = new QCheckBox("Dark Mode", this);
     
+    // Set object names for styling
+    shippoTokenInput->setObjectName("settingsInput");
+    webhookUrlInput->setObjectName("settingsInput");
+    darkModeCheckbox->setObjectName("settingsCheckbox");
+    
     formLayout->addRow("Shippo API Token:", shippoTokenInput);
     formLayout->addRow("Webhook URL:", webhookUrlInput);
     formLayout->addRow(darkModeCheckbox);
     
-    QPushButton* saveButton = new QPushButton("Save", this);
+    saveButton = new QPushButton("Save", this);
+    saveButton->setObjectName("settingsSaveButton");
+    
     connect(saveButton, &QPushButton::clicked, this, [this, parent]() {
         QString shippoToken = shippoTokenInput->text().trimmed();
         QString webhookUrl = webhookUrlInput->text().trimmed();
@@ -59,4 +67,116 @@ SettingsDialog::SettingsDialog(QWidget *parent)
     mainLayout->addLayout(formLayout);
     mainLayout->addWidget(saveButton);
     setLayout(mainLayout);
+
+    // Apply initial theme
+    updateTheme(settings.value("darkMode", false).toBool());
+}
+
+void SettingsDialog::updateTheme(bool darkMode)
+{
+    QString lightStyle = R"(
+        QDialog {
+            background-color: white;
+            color: #333333;
+        }
+        QLineEdit#settingsInput {
+            background-color: white;
+            color: #333333;
+            border: 1px solid rgba(0, 0, 0, 0.15);
+            border-radius: 5px;
+            padding: 5px;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
+            font-size: 13px;
+        }
+        QCheckBox#settingsCheckbox {
+            color: #333333;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
+            font-size: 13px;
+        }
+        QCheckBox#settingsCheckbox::indicator {
+            width: 18px;
+            height: 18px;
+            border: 1px solid rgba(0, 0, 0, 0.15);
+            border-radius: 3px;
+            background-color: white;
+        }
+        QCheckBox#settingsCheckbox::indicator:checked {
+            background-color: #0078d4;
+            border-color: #0078d4;
+        }
+        QPushButton#settingsSaveButton {
+            background-color: #0078d4;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            padding: 8px 16px;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
+            font-size: 13px;
+        }
+        QPushButton#settingsSaveButton:hover {
+            background-color: #106ebe;
+        }
+        QPushButton#settingsSaveButton:pressed {
+            background-color: #005a9e;
+        }
+        QLabel {
+            color: #333333;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
+            font-size: 13px;
+        }
+    )";
+
+    QString darkStyle = R"(
+        QDialog {
+            background-color: #1e1e1e;
+            color: #ffffff;
+        }
+        QLineEdit#settingsInput {
+            background-color: #2d2d2d;
+            color: #ffffff;
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            border-radius: 5px;
+            padding: 5px;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
+            font-size: 13px;
+        }
+        QCheckBox#settingsCheckbox {
+            color: #ffffff;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
+            font-size: 13px;
+        }
+        QCheckBox#settingsCheckbox::indicator {
+            width: 18px;
+            height: 18px;
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            border-radius: 3px;
+            background-color: #2d2d2d;
+        }
+        QCheckBox#settingsCheckbox::indicator:checked {
+            background-color: #0078d4;
+            border-color: #0078d4;
+        }
+        QPushButton#settingsSaveButton {
+            background-color: #0078d4;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            padding: 8px 16px;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
+            font-size: 13px;
+        }
+        QPushButton#settingsSaveButton:hover {
+            background-color: #106ebe;
+        }
+        QPushButton#settingsSaveButton:pressed {
+            background-color: #005a9e;
+        }
+        QLabel {
+            color: #ffffff;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
+            font-size: 13px;
+        }
+    )";
+
+    setStyleSheet(darkMode ? darkStyle : lightStyle);
 }

@@ -4,6 +4,7 @@
 #include <QDialog>
 #include <QLineEdit>
 #include <QCheckBox>
+#include <QPushButton>
 
 class SettingsDialog : public QDialog
 {
@@ -15,8 +16,12 @@ public:
     QLineEdit* webhookUrlInput;
     QCheckBox* darkModeCheckbox;
     
+    // Add method to update theme
+    void updateTheme(bool darkMode);
+    
 private:
     void setupUI();
+    QPushButton* saveButton;  // Add this to access the save button for theming
 };
 
 #endif // SETTINGSDIALOG_H

@@ -607,40 +607,50 @@ void MainWindow::showPackageDetails(const QString& trackingNumber)
             carrier = "Unknown Carrier";
         }
         
+        // Get the current theme
+        QSettings settings;
+        bool isDarkMode = settings.value("darkMode", false).toBool();
+        
+        // Define colors based on theme
+        QString bgColor = isDarkMode ? "#2d2d2d" : "white";
+        QString textColor = isDarkMode ? "#ffffff" : "#2c3e50";
+        QString sectionBgColor = isDarkMode ? "#1e1e1e" : "#f8f9fa";
+        QString borderColor = isDarkMode ? "rgba(255, 255, 255, 0.15)" : "rgba(0, 0, 0, 0.1)";
+        
         // Format the tracking number with carrier logo/icon
         QString details = QString(
-            "<div style='background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);'>"
+            "<div style='background: %1; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px %2;'>"
             "  <div style='display: flex; align-items: center; margin-bottom: 16px;'>"
             "    <div style='flex-grow: 1;'>"
-            "      <h2 style='margin: 0; color: #2c3e50; font-size: 24px;'>%1</h2>"
-            "      <p style='color: #7f8c8d; margin: 4px 0 0 0; font-size: 16px;'>%2</p>"
+            "      <h2 style='margin: 0; color: %3; font-size: 24px; font-family: -apple-system, BlinkMacSystemFont, \"Segoe UI\", Roboto, Arial, sans-serif;'>%4</h2>"
+            "      <p style='color: %5; margin: 4px 0 0 0; font-size: 16px; font-family: -apple-system, BlinkMacSystemFont, \"Segoe UI\", Roboto, Arial, sans-serif;'>%6</p>"
             "    </div>"
             "  </div>"
-        ).arg(trackingNumber).arg(carrier);
+        ).arg(bgColor).arg(borderColor).arg(textColor).arg(trackingNumber).arg(textColor).arg(carrier);
 
         // Current Status Section
         QString statusColor = info["status"].toString().contains("Delivered") ? "#27ae60" : "#f39c12";
         details += QString(
-            "  <div style='background: #f8f9fa; padding: 16px; border-radius: 8px; margin-bottom: 20px;'>"
-            "    <h3 style='margin: 0 0 8px 0; color: #2c3e50; font-size: 18px;'>Current Status</h3>"
-            "    <p style='margin: 0; color: %1; font-weight: 500; font-size: 16px;'>%2</p>"
+            "  <div style='background: %1; padding: 16px; border-radius: 8px; margin-bottom: 20px; border: 1px solid %2;'>"
+            "    <h3 style='margin: 0 0 8px 0; color: %3; font-size: 18px; font-family: -apple-system, BlinkMacSystemFont, \"Segoe UI\", Roboto, Arial, sans-serif;'>Current Status</h3>"
+            "    <p style='margin: 0; color: %4; font-weight: 500; font-size: 16px; font-family: -apple-system, BlinkMacSystemFont, \"Segoe UI\", Roboto, Arial, sans-serif;'>%5</p>"
             "  </div>"
-        ).arg(statusColor).arg(info["status"].toString());
+        ).arg(sectionBgColor).arg(borderColor).arg(textColor).arg(statusColor).arg(info["status"].toString());
 
         // Estimated Delivery Section
         if (info.contains("estimatedDelivery")) {
             details += QString(
-                "  <div style='background: #f8f9fa; padding: 16px; border-radius: 8px; margin-bottom: 20px;'>"
-                "    <h3 style='margin: 0 0 8px 0; color: #2c3e50; font-size: 18px;'>Estimated Delivery</h3>"
-                "    <p style='margin: 0; color: #2c3e50; font-size: 16px;'>%1</p>"
+                "  <div style='background: %1; padding: 16px; border-radius: 8px; margin-bottom: 20px; border: 1px solid %2;'>"
+                "    <h3 style='margin: 0 0 8px 0; color: %3; font-size: 18px; font-family: -apple-system, BlinkMacSystemFont, \"Segoe UI\", Roboto, Arial, sans-serif;'>Estimated Delivery</h3>"
+                "    <p style='margin: 0; color: %3; font-size: 16px; font-family: -apple-system, BlinkMacSystemFont, \"Segoe UI\", Roboto, Arial, sans-serif;'>%4</p>"
                 "  </div>"
-            ).arg(info["estimatedDelivery"].toString());
+            ).arg(sectionBgColor).arg(borderColor).arg(textColor).arg(info["estimatedDelivery"].toString());
         }
 
         // Tracking History Section
         if (info.contains("events")) {
-            details += "<h3 style='margin: 0 0 16px 0; color: #2c3e50; font-size: 18px;'>Tracking History</h3>";
-            details += "<div style='max-height: 400px; overflow-y: auto;'>";
+            details += QString("<h3 style='margin: 0 0 16px 0; color: %1; font-size: 18px; font-family: -apple-system, BlinkMacSystemFont, \"Segoe UI\", Roboto, Arial, sans-serif;'>Tracking History</h3>"
+                             "<div style='max-height: 400px; overflow-y: auto;'>").arg(textColor);
             
             QJsonArray events = info["events"].toArray();
             for (const QJsonValue& event : events) {
@@ -652,13 +662,14 @@ void MainWindow::showPackageDetails(const QString& trackingNumber)
                 QString formattedDate = dateTime.toString("MMM d, yyyy h:mm AP");
                 
                 details += QString(
-                    "<div style='background: white; padding: 16px; border-radius: 8px; margin-bottom: 12px; "
-                    "     border: 1px solid #e0e0e0;'>"
-                    "  <div style='color: #7f8c8d; font-size: 14px; margin-bottom: 4px;'>%1</div>"
-                    "  <div style='color: #2c3e50; font-weight: 500; font-size: 16px; margin-bottom: 4px;'>%2</div>"
-                    "  <div style='color: #7f8c8d; font-size: 14px;'>%3</div>"
+                    "<div style='background: %1; padding: 16px; border-radius: 8px; margin-bottom: 12px; "
+                    "     border: 1px solid %2;'>"
+                    "  <div style='color: %3; font-size: 14px; margin-bottom: 4px; font-family: -apple-system, BlinkMacSystemFont, \"Segoe UI\", Roboto, Arial, sans-serif;'>%4</div>"
+                    "  <div style='color: %3; font-weight: 500; font-size: 16px; margin-bottom: 4px; font-family: -apple-system, BlinkMacSystemFont, \"Segoe UI\", Roboto, Arial, sans-serif;'>%5</div>"
+                    "  <div style='color: %3; font-size: 14px; font-family: -apple-system, BlinkMacSystemFont, \"Segoe UI\", Roboto, Arial, sans-serif;'>%6</div>"
                     "</div>"
-                ).arg(formattedDate)
+                ).arg(bgColor).arg(borderColor).arg(textColor)
+                 .arg(formattedDate)
                  .arg(e["description"].toString())
                  .arg(e["location"].toString());
             }
@@ -667,15 +678,20 @@ void MainWindow::showPackageDetails(const QString& trackingNumber)
         
         details += "</div>"; // Close main container
         
-        detailsView->setHtml("<div style='padding: 8px;'>" + details + "</div>");
+        detailsView->setHtml(details);
     } else {
-        detailsView->setText("Loading details for: " + trackingNumber);
+        QString loadingText = QString("<div style='color: %1; font-family: -apple-system, BlinkMacSystemFont, \"Segoe UI\", Roboto, Arial, sans-serif;'>Loading details for: %2</div>")
+            .arg(settings.value("darkMode", false).toBool() ? "#ffffff" : "#2c3e50")
+            .arg(trackingNumber);
+        detailsView->setHtml(loadingText);
         
         QString carrier = detectCarrier(trackingNumber);
         if (shippoClient) {
             shippoClient->trackPackage(trackingNumber);
         } else {
-            detailsView->setText("Unknown carrier for tracking number: " + trackingNumber);
+            detailsView->setHtml(QString("<div style='color: %1; font-family: -apple-system, BlinkMacSystemFont, \"Segoe UI\", Roboto, Arial, sans-serif;'>Unknown carrier for tracking number: %2</div>")
+                .arg(settings.value("darkMode", false).toBool() ? "#ffffff" : "#2c3e50")
+                .arg(trackingNumber));
         }
     }
 }
