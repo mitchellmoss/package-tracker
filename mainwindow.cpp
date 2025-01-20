@@ -228,8 +228,15 @@ MainWindow::MainWindow(QWidget *parent)
         connect(shippoClient, &ShippoClient::trackingInfoReceived, this, [this](const QJsonObject& info) {
             QString trackingNumber = info["tracking_number"].toString();
             packageDetails[trackingNumber] = info;
-            updatePackageStatus(trackingNumber, info["tracking_status"].toObject()["status"].toString());
-            this->showPackageDetails(trackingNumber);
+        
+            // Get status from the normalized field we set in ShippoClient
+            QString status = info["status"].toString();
+            updatePackageStatus(trackingNumber, status);
+        
+            // Show details if this is the currently selected package
+            if (packageList->currentItem() && packageList->currentItem()->text() == trackingNumber) {
+                this->showPackageDetails(trackingNumber);
+            }
         });
         
         connect(shippoClient, &ShippoClient::trackingError, this, [this](const QString& error) {
@@ -327,20 +334,20 @@ void PackageItemDelegate::paint(QPainter* painter, const QStyleOptionViewItem& o
     QRect rect = opt.rect;
     int padding = 4;
     
-    // Draw the status icon
-    QColor statusColor;
-    if (status == "DELIVERED") {
+    // Draw the status icon with consistent color mapping
+    QColor statusColor = QColor("#95a5a6"); // Default gray
+    
+    QString normalizedStatus = status.toUpper();
+    if (normalizedStatus == "DELIVERED") {
         statusColor = QColor("#27ae60"); // Green
-    } else if (status == "TRANSIT") {
+    } else if (normalizedStatus == "TRANSIT" || normalizedStatus == "IN_TRANSIT") {
         statusColor = QColor("#f39c12"); // Orange
-    } else if (status == "PRE_TRANSIT") {
+    } else if (normalizedStatus == "PRE_TRANSIT") {
         statusColor = QColor("#3498db"); // Blue
-    } else if (status == "FAILURE") {
+    } else if (normalizedStatus == "FAILURE") {
         statusColor = QColor("#e74c3c"); // Red
-    } else if (status == "RETURNED") {
+    } else if (normalizedStatus == "RETURNED") {
         statusColor = QColor("#9b59b6"); // Purple
-    } else {
-        statusColor = QColor("#95a5a6"); // Gray
     }
     
     QRect iconRect = rect;

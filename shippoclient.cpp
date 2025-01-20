@@ -101,13 +101,20 @@ void ShippoClient::onRequestFinished(QNetworkReply* reply)
     QJsonObject trackingStatus = response["tracking_status"].toObject();
     QString status = trackingStatus["status"].toString().toUpper();
     
-    // Map status to our UI status strings
-    if (status == "PRE_TRANSIT") result["status"] = "PRE_TRANSIT";
-    else if (status == "TRANSIT") result["status"] = "TRANSIT"; 
-    else if (status == "DELIVERED") result["status"] = "DELIVERED";
-    else if (status == "RETURNED") result["status"] = "RETURNED";
-    else if (status == "FAILURE") result["status"] = "FAILURE";
-    else result["status"] = "UNKNOWN";
+    // Map Shippo status to our standardized status strings
+    QString normalizedStatus = "UNKNOWN";
+    if (status == "PRE_TRANSIT" || status == "pre_transit") {
+        normalizedStatus = "PRE_TRANSIT";
+    } else if (status == "TRANSIT" || status == "in_transit") {
+        normalizedStatus = "TRANSIT";
+    } else if (status == "DELIVERED" || status == "delivered") {
+        normalizedStatus = "DELIVERED";
+    } else if (status == "RETURNED" || status == "returned") {
+        normalizedStatus = "RETURNED";
+    } else if (status == "FAILURE" || status == "failure") {
+        normalizedStatus = "FAILURE";
+    }
+    result["status"] = normalizedStatus;
     
     // Map substatus if available
     if (!trackingStatus["substatus"].isNull()) {
