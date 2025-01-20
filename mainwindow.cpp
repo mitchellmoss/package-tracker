@@ -4,6 +4,7 @@
 #include <QMessageBox>
 #include <QPainter>
 #include <QApplication>
+#include <QInputDialog>
 #include <QGraphicsBlurEffect>
 #include <QGraphicsPixmapItem>
 #include <QGraphicsScene>  // Add this include
@@ -457,6 +458,15 @@ void MainWindow::setupUI()
     connect(addButton, &QPushButton::clicked, this, &MainWindow::addPackage);
     connect(removeButton, &QPushButton::clicked, this, &MainWindow::removePackage);
     connect(refreshButton, &QPushButton::clicked, this, &MainWindow::refreshPackages);
+    
+    // Add context menu for editing notes
+    packageList->setContextMenuPolicy(Qt::CustomContextMenu);
+    connect(packageList, &QWidget::customContextMenuRequested, this, [this](const QPoint &pos) {
+        QMenu contextMenu(tr("Context menu"), this);
+        QAction *editNoteAction = contextMenu.addAction("Edit Note");
+        connect(editNoteAction, &QAction::triggered, this, &MainWindow::editNote);
+        contextMenu.exec(packageList->mapToGlobal(pos));
+    });
     connect(packageList, &QListWidget::itemClicked, this, QOverload<QListWidgetItem*>::of(&MainWindow::showPackageDetails));
 }
 
@@ -709,6 +719,26 @@ void MainWindow::updateApiClients(const QString& shippoToken)
     connect(shippoClient, &ShippoClient::trackingError, this, [this](const QString& error) {
         QMessageBox::warning(this, "Tracking Error", error);
     });
+}
+
+void MainWindow::editNote()
+{
+    QListWidgetItem *currentItem = packageList->currentItem();
+    if (!currentItem) return;
+    
+    QString trackingNumber = currentItem->text();
+    QString currentNote = currentItem->data(Qt::UserRole + 1).toString();
+    
+    bool ok;
+    QString newNote = QInputDialog::getText(this, "Edit Note",
+                                          "Enter note for " + trackingNumber + ":",
+                                          QLineEdit::Normal,
+                                          currentNote, &ok);
+    if (ok) {
+        currentItem->setData(Qt::UserRole + 1, newNote);
+        packageNotes[trackingNumber] = newNote;
+        savePackages();
+    }
 }
 
 void MainWindow::savePackages()

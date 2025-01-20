@@ -53,6 +53,7 @@ private slots:
     void addPackage();
     void removePackage();
     void refreshPackages();
+    void editNote();
     void showPackageDetails(QListWidgetItem* item);
     void showPackageDetails(const QString& trackingNumber);
     void setupTrayIcon();
