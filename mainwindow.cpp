@@ -337,10 +337,17 @@ void PackageItemDelegate::paint(QPainter* painter, const QStyleOptionViewItem& o
     // Draw the status icon with consistent color mapping
     QColor statusColor = QColor("#95a5a6"); // Default gray
     
+    // For test tracking numbers, get status from tracking number
     QString normalizedStatus = status.toUpper();
+    QString trackingNumber = index.data(Qt::DisplayRole).toString();
+    
+    if (trackingNumber.startsWith("SHIPPO_")) {
+        normalizedStatus = trackingNumber.split("_")[1];
+    }
+    
     if (normalizedStatus == "DELIVERED") {
         statusColor = QColor("#27ae60"); // Green
-    } else if (normalizedStatus == "TRANSIT" || normalizedStatus == "IN_TRANSIT") {
+    } else if (normalizedStatus == "TRANSIT") {
         statusColor = QColor("#f39c12"); // Orange
     } else if (normalizedStatus == "PRE_TRANSIT") {
         statusColor = QColor("#3498db"); // Blue
