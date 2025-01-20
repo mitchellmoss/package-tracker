@@ -33,23 +33,18 @@ void FedExClient::trackPackage(const QString& trackingNumber)
     QString transactionId = QUuid::createUuid().toString();
     request.setRawHeader("x-customer-transaction-id", transactionId.toUtf8());
     request.setRawHeader("x-locale", "en_US");
-    request.setRawHeader("x-version", "1");
-    request.setRawHeader("x-fedex-client-id", apiKey.toUtf8());
-    request.setRawHeader("x-fedex-client-secret", apiSecret.toUtf8());
-    request.setRawHeader("User-Agent", "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36");
 
+    QJsonArray trackingInfo;
     QJsonObject trackingNumberInfo;
     trackingNumberInfo["trackingNumber"] = trackingNumber;
-    trackingNumberInfo["carrierCode"] = "FDXH"; // FedEx Home Delivery
+    trackingNumberInfo["carrierCode"] = "FDXE"; // FedEx Express
     trackingNumberInfo["shipDateBegin"] = QDate::currentDate().addDays(-45).toString("yyyy-MM-dd");
-    trackingNumberInfo["shipDateEnd"] = QDate::currentDate().addDays(1).toString("yyyy-MM-dd");
+    trackingNumberInfo["shipDateEnd"] = QDate::currentDate().toString("yyyy-MM-dd");
+    trackingInfo.append(trackingNumberInfo);
 
     QJsonObject payload;
     payload["includeDetailedScans"] = true;
-    payload["trackingInfo"] = QJsonArray{trackingNumberInfo};
-    payload["appDeviceType"] = "DESKTOP.BROWSER.CHROME.MACOS";
-    payload["appType"] = "WTRK";
-    payload["uniqueKey"] = "";
+    payload["trackingInfo"] = trackingInfo;
 
     QByteArray jsonData = QJsonDocument(payload).toJson();
     
