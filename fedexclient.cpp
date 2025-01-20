@@ -27,14 +27,18 @@ void FedExClient::trackPackage(const QString& trackingNumber)
     QNetworkRequest request(url);
     request.setRawHeader("Authorization", ("Bearer " + token).toUtf8());
     request.setHeader(QNetworkRequest::ContentTypeHeader, "application/json");
+    
+    // Add required headers
+    QString transactionId = QUuid::createUuid().toString();
+    request.setRawHeader("x-customer-transaction-id", transactionId.toUtf8());
+    request.setRawHeader("x-locale", "en_US");
+
+    QJsonObject trackingNumberInfo;
+    trackingNumberInfo["trackingNumber"] = trackingNumber;
 
     QJsonObject payload;
     payload["includeDetailedScans"] = true;
-    QJsonObject trackingInfo;
-    trackingInfo["trackingNumberInfo"] = QJsonObject{
-        {"trackingNumber", trackingNumber}
-    };
-    payload["trackingInfo"] = QJsonArray{trackingInfo};
+    payload["trackingInfo"] = QJsonArray{trackingNumberInfo};
 
     manager->post(request, QJsonDocument(payload).toJson());
 }
@@ -115,41 +119,70 @@ void FedExClient::onRequestFinished(QNetworkReply* reply)
     }
 
     QJsonObject result;
-    QJsonObject output = doc.object();
-    if (!output.contains("output")) {
+    QJsonObject response = doc.object();
+    
+    if (!response.contains("output")) {
         emit trackingError("Invalid response format - missing output");
         return;
     }
-    
-    QJsonObject trackingInfo = output["output"].toObject();
-    if (!trackingInfo.contains("trackingNumberInfo")) {
-        emit trackingError("Invalid response format - missing tracking info");
+
+    QJsonObject output = response["output"].toObject();
+    if (!output.contains("completeTrackResults")) {
+        emit trackingError("Invalid response format - missing track results");
         return;
     }
+
+    QJsonArray trackResults = output["completeTrackResults"].toArray();
+    if (trackResults.isEmpty()) {
+        if (output.contains("alerts")) {
+            emit trackingError(output["alerts"].toString());
+        } else {
+            emit trackingError("No tracking results found");
+        }
+        return;
+    }
+
+    QJsonObject trackResult = trackResults.first().toObject();
+    if (!trackResult.contains("trackingNumber")) {
+        emit trackingError("Invalid response format - missing tracking number");
+        return;
+    }
+
+    result["trackingNumber"] = trackResult["trackingNumber"].toString();
     
-    result["trackingNumber"] = trackingInfo["trackingNumberInfo"].toObject()["trackingNumber"].toString();
-    result["status"] = trackingInfo["latestStatusDetail"].toObject()["description"].toString();
-    
+    if (trackResult.contains("latestStatusDetail")) {
+        QJsonObject status = trackResult["latestStatusDetail"].toObject();
+        result["status"] = status["description"].toString();
+    }
+
     QJsonArray events;
-    if (!trackingInfo.contains("scanEvents")) {
-        emit trackingError("No scan events in response");
-        return;
-    }
-    
-    for (const QJsonValue& scan : trackingInfo["scanEvents"].toArray()) {
-        QJsonObject event = scan.toObject();
-        events.append(QJsonObject{
-            {"timestamp", event["date"].toString() + " " + event["time"].toString()},
-            {"description", event["eventDescription"].toString()},
-            {"location", event["scanLocation"].toObject()["city"].toString() + ", " + 
-                        event["scanLocation"].toObject()["stateOrProvinceCode"].toString()}
-        });
+    if (trackResult.contains("scanEvents")) {
+        for (const QJsonValue& scan : trackResult["scanEvents"].toArray()) {
+            QJsonObject event = scan.toObject();
+            QString location;
+            if (event.contains("scanLocation")) {
+                QJsonObject loc = event["scanLocation"].toObject();
+                QString city = loc["city"].toString();
+                QString state = loc["stateOrProvinceCode"].toString();
+                location = city + (state.isEmpty() ? "" : ", " + state);
+            }
+            
+            events.append(QJsonObject{
+                {"timestamp", event["date"].toString() + " " + event["time"].toString()},
+                {"description", event["eventDescription"].toString()},
+                {"location", location}
+            });
+        }
     }
     result["events"] = events;
-    
-    if (output.contains("estimatedDeliveryTimeWindow")) {
-        QJsonObject window = output["estimatedDeliveryTimeWindow"].toObject();
-        result["estimatedDelivery"] = window["starts"].toString() + " - " + window["ends"].toString();
+
+    if (trackResult.contains("estimatedDeliveryTimeWindow")) {
+        QJsonObject window = trackResult["estimatedDeliveryTimeWindow"].toObject();
+        if (window.contains("window")) {
+            QJsonObject timeWindow = window["window"].toObject();
+            result["estimatedDelivery"] = timeWindow["begins"].toString() + " - " + 
+                                        timeWindow["ends"].toString();
+        }
     }
     
     emit trackingInfoReceived(result);
