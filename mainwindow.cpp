@@ -491,14 +491,28 @@ void MainWindow::refreshPackages()
 
 QString MainWindow::detectCarrier(const QString& trackingNumber)
 {
-    // UPS tracking numbers start with 1Z and are 18 digits
-    if (trackingNumber.startsWith("1Z") && trackingNumber.length() == 18) {
-        return "UPS";
-    }
-    // FedEx tracking numbers are 12, 15, or 20 digits
-    else if (trackingNumber.length() == 12 || trackingNumber.length() == 15 || trackingNumber.length() == 20) {
+    // FedEx tracking number formats:
+    // - 12 digits
+    // - 14 digits starting with 96 or 98
+    // - 15 digits
+    // - 20 digits starting with 96
+    // - 22 digits
+    if (trackingNumber.length() == 12 ||
+        (trackingNumber.length() == 14 && (trackingNumber.startsWith("96") || trackingNumber.startsWith("98"))) ||
+        trackingNumber.length() == 15 ||
+        (trackingNumber.length() == 20 && trackingNumber.startsWith("96")) ||
+        trackingNumber.length() == 22) {
         return "FedEx";
     }
+    
+    // UPS tracking number format:
+    // - 18 characters starting with "1Z"
+    // - 12 characters (for mail innovations)
+    if ((trackingNumber.startsWith("1Z") && trackingNumber.length() == 18) ||
+        (trackingNumber.length() == 12 && !trackingNumber.startsWith("96") && !trackingNumber.startsWith("98"))) {
+        return "UPS";
+    }
+    
     return "Unknown";
 }
 
