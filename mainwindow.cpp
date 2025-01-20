@@ -599,7 +599,10 @@ void MainWindow::showPackageDetails(const QString& trackingNumber)
     
     if (packageDetails.contains(trackingNumber)) {
         QJsonObject info = packageDetails[trackingNumber];
-        QString carrier = info.contains("carrier") ? info["carrier"].toString() : "Unknown Carrier";
+        QString carrier = info["carrier"].toString();
+        if (carrier.isEmpty()) {
+            carrier = "Unknown Carrier";
+        }
         
         // Format the tracking number with carrier logo/icon
         QString details = QString(

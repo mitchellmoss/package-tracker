@@ -91,11 +91,31 @@ void ShippoClient::onRequestFinished(QNetworkReply* reply)
     }
 
     QJsonObject response = doc.object();
-    QJsonObject result;
+    // For test tracking numbers, create simulated response
+    if (response["tracking_number"].toString().startsWith("SHIPPO_")) {
+        QString testStatus = response["tracking_number"].toString().split("_")[1];
+        QJsonObject result = response; // Keep original response data
+        result["status"] = testStatus;
+        result["tracking_number"] = response["tracking_number"].toString();
+        result["carrier"] = "SHIPPO TEST";
+        
+        // Add simulated tracking event
+        QJsonArray events;
+        QJsonObject event;
+        event["timestamp"] = QDateTime::currentDateTime().toString("yyyyMMdd HHmmss");
+        event["status"] = testStatus;
+        event["description"] = "Test tracking status: " + testStatus;
+        event["location"] = "Test Location, XX 12345";
+        events.append(event);
+        result["events"] = events;
+        
+        emit trackingInfoReceived(result);
+        reply->deleteLater();
+        return;
+    }
 
-    // Map Shippo tracking data to our internal format
-    result["trackingNumber"] = response["tracking_number"].toString();
-    result["carrier"] = response["carrier"].toString();
+    // For real tracking numbers, map the response
+    QJsonObject result = response; // Keep all original response data
     
     // Get tracking status
     QJsonObject trackingStatus = response["tracking_status"].toObject();
