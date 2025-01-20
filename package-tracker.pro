@@ -4,6 +4,9 @@ TARGET = PackageTracker
 QT += core gui widgets network
 CONFIG += ssl
 
+# Add Shippo package
+INCLUDEPATH += $$system(dotnet list package | grep Shippo | cut -d' ' -f1)
+
 SOURCES += main.cpp \
            mainwindow.cpp \
            fedexclient.cpp \
