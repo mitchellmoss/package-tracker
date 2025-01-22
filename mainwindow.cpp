@@ -439,7 +439,7 @@ void MainWindow::refreshPackages()
     }
 }
 
-void MainWindow::updatePackageStatus(const QString& trackingNumber, const QString& status, bool notify)
+void MainWindow::updatePackageStatus(const QString& trackingNumber, const QString& status)
 {
     for (int i = 0; i < packageList->count(); ++i) {
         auto item = packageList->item(i);
@@ -450,13 +450,11 @@ void MainWindow::updatePackageStatus(const QString& trackingNumber, const QStrin
                 item->setData(Qt::UserRole, status);
                 packageList->update(packageList->indexFromItem(item));
                 
-                if (notify) {
-                    QString notificationMsg = QString("Package %1 status changed from %2 to %3")
-                        .arg(trackingNumber)
-                        .arg(oldStatus)
-                        .arg(status);
-                    showNotification("Package Status Update", notificationMsg);
-                }
+                QString notificationMsg = QString("Package %1 status changed from %2 to %3")
+                    .arg(trackingNumber)
+                    .arg(oldStatus)
+                    .arg(status);
+                showNotification("Package Status Update", notificationMsg);
             }
             break;
         }
