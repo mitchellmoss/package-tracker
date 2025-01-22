@@ -23,6 +23,9 @@
 #include <QGraphicsDropShadowEffect>
 #include <QToolButton>
 
+#define REFRESH_INTERVAL 900000 // 15 minutes
+#define RETRY_DELAY 30000       // 30 seconds
+
 // Implementation of FrostedGlassEffect
 void FrostedGlassEffect::draw(QPainter* painter)
 {
