@@ -94,7 +94,7 @@ private slots:
     void showPackageDetails(QListWidgetItem* item);
     void showPackageDetails(const QString& trackingNumber);
     void setupTrayIcon();
-    void updatePackageStatus(const QString& trackingNumber, const QString& status, bool notify = true);
+    void updatePackageStatus(const QString& trackingNumber, const QString& status);
     void showNotification(const QString& title, const QString& message);
     void retryFailedUpdates();
     void processUpdateQueue();
