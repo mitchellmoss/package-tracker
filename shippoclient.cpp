@@ -6,6 +6,18 @@
 #include <QUrl>
 #include <QDateTime>
 
+QString ShippoClient::detectCarrier(const QString& trackingNumber) {
+    // Simple pattern matching for common carriers
+    if (trackingNumber.startsWith("1Z")) return "ups";
+    if (trackingNumber.startsWith("420")) return "usps";
+    if (trackingNumber.startsWith("94")) return "usps";
+    if (trackingNumber.length() == 12 && trackingNumber.toUpper() == trackingNumber) return "fedex";
+    if (trackingNumber.length() == 15 && trackingNumber.toInt() > 0) return "fedex";
+    if (trackingNumber.startsWith("D") && trackingNumber.length() == 10) return "dhl"; 
+    if (trackingNumber.length() == 16 && trackingNumber.toInt() > 0) return "canada-post";
+    return "usps"; // default to most common carrier
+}
+
 ShippoClient::ShippoClient(const QString& apiToken, QObject *parent)
     : QObject(parent), apiToken(apiToken)
 {
@@ -26,8 +38,11 @@ void ShippoClient::trackPackage(const QString& trackingNumber)
     qDebug() << "URL:" << url.toString();
     
     // Always use POST with carrier and tracking number for consistency
+    // Try to detect carrier from tracking number pattern
+    QString carrier = detectCarrier(trackingNumber);
+    
     QJsonObject postData;
-    postData["carrier"] = "";  // Will be set to real carrier code automatically
+    postData["carrier"] = carrier;
     postData["tracking_number"] = trackingNumber;
     postData["metadata"] = "Order " + trackingNumber;
     
