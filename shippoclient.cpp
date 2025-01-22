@@ -27,9 +27,9 @@ void ShippoClient::trackPackage(const QString& trackingNumber)
     
     // Always use POST with carrier and tracking number for consistency
     QJsonObject postData;
-    postData["carrier"] = "shippo";  // Use shippo carrier for test numbers
+    postData["carrier"] = "";  // Will be set to real carrier code automatically
     postData["tracking_number"] = trackingNumber;
-    postData["metadata"] = "Order " + trackingNumber;  // Add metadata for reference
+    postData["metadata"] = "Order " + trackingNumber;
     
     QJsonDocument doc(postData);
     QByteArray jsonData = doc.toJson();
@@ -91,28 +91,6 @@ void ShippoClient::onRequestFinished(QNetworkReply* reply)
     }
 
     QJsonObject response = doc.object();
-    // For test tracking numbers, create simulated response
-    if (response["tracking_number"].toString().startsWith("SHIPPO_")) {
-        QString testStatus = response["tracking_number"].toString().split("_")[1];
-        QJsonObject result = response; // Keep original response data
-        result["status"] = testStatus;
-        result["tracking_number"] = response["tracking_number"].toString();
-        result["carrier"] = "SHIPPO TEST";
-        
-        // Add simulated tracking event
-        QJsonArray events;
-        QJsonObject event;
-        event["timestamp"] = QDateTime::currentDateTime().toString("yyyyMMdd HHmmss");
-        event["status"] = testStatus;
-        event["description"] = "Test tracking status: " + testStatus;
-        event["location"] = "Test Location, XX 12345";
-        events.append(event);
-        result["events"] = events;
-        
-        emit trackingInfoReceived(result);
-        reply->deleteLater();
-        return;
-    }
 
     // For real tracking numbers, map the response
     QJsonObject result = response; // Keep all original response data
@@ -121,12 +99,7 @@ void ShippoClient::onRequestFinished(QNetworkReply* reply)
     QJsonObject trackingStatus = response["tracking_status"].toObject();
     QString status = trackingStatus["status"].toString().toUpper();
     
-    // For test tracking numbers, use the status from the tracking number itself
-    if (result["tracking_number"].toString().startsWith("SHIPPO_")) {
-        QString testStatus = result["tracking_number"].toString().split("_")[1];
-        result["status"] = testStatus;
-    } else {
-        // Map Shippo status to our standardized status strings
+    // Map Shippo status to our standardized status strings
         QString normalizedStatus = "UNKNOWN";
         if (status == "PRE_TRANSIT" || status == "pre_transit") {
             normalizedStatus = "PRE_TRANSIT";
