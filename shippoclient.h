@@ -71,6 +71,7 @@ private slots:
     void onRequestFinished(QNetworkReply* reply);
     
 private:
+    QString detectCarrier(const QString& trackingNumber);
     QNetworkAccessManager* manager;
     QString apiToken;
 };
