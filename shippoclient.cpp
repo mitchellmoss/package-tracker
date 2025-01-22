@@ -114,7 +114,6 @@ void ShippoClient::onRequestFinished(QNetworkReply* reply)
         }
         result["status"] = normalizedStatus;
     }
-    
     // Map substatus if available
     if (!trackingStatus["substatus"].isNull()) {
         QString substatus = trackingStatus["substatus"].toString();
