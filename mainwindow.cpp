@@ -22,6 +22,8 @@
 #include <QDateTime>
 #include <QGraphicsDropShadowEffect>
 #include <QToolButton>
+#include <QCheckBox>
+#include "archivedpackageswindow.h"
 
 #define REFRESH_INTERVAL 900000 // 15 minutes
 #define RETRY_DELAY 30000       // 30 seconds
@@ -305,7 +307,20 @@ void MainWindow::setupInputArea()
 void MainWindow::setupPackageList()
 {
     packageList = std::make_unique<QListWidget>(this);
+    packageList->setSelectionMode(QAbstractItemView::SingleSelection);
+    packageList->setContextMenuPolicy(Qt::CustomContextMenu);
     packageList->setItemDelegate(new PackageItemDelegate(packageList.get()));
+    
+    // Create a toggle control for showing archived packages.
+    QCheckBox* toggleArchived = new QCheckBox("Show Archived", this);
+    toggleArchived->setChecked(false); // default: show non-archived packages.
+    connect(toggleArchived, &QCheckBox::toggled, this, [this](bool checked) {
+        showArchived = checked;
+        refreshPackageList();
+    });
+    
+    // Add the toggle and the package list to the main layout.
+    containerLayout->addWidget(toggleArchived);
     containerLayout->addWidget(packageList.get());
 }
 
@@ -335,6 +350,14 @@ void MainWindow::setupMenuBar()
         settingsDialog->exec();
     });
     
+    QMenu* viewMenu = menuBar->addMenu("View");
+    QAction* showArchivedAction = viewMenu->addAction("Show Archived Packages", this, [this](){
+        // Create and show the Archived Packages window (modal dialog)
+        auto archivedWindow = new ArchivedPackagesWindow(this);
+        connect(archivedWindow, &ArchivedPackagesWindow::requestUnarchive, this, &MainWindow::unarchivePackage);
+        archivedWindow->exec();
+    });
+    
     setMenuBar(menuBar.release());
 }
 
@@ -358,8 +381,29 @@ void MainWindow::setupConnections()
     packageList->setContextMenuPolicy(Qt::CustomContextMenu);
     connect(packageList.get(), &QWidget::customContextMenuRequested, this, [this](const QPoint &pos) {
         QMenu contextMenu(tr("Context menu"), this);
+        
+        // Get the item at the context position
+        QListWidgetItem* item = packageList->itemAt(pos);
+        if (!item)
+            return;
+        
         QAction *editNoteAction = contextMenu.addAction("Edit Note");
         connect(editNoteAction, &QAction::triggered, this, &MainWindow::editNote);
+        
+        // Add Archive/Unarchive action based on current state
+        bool isArchived = item->data(Qt::UserRole + 2).toBool();
+        QAction *archiveAction = contextMenu.addAction(isArchived ? "Unarchive" : "Archive");
+        connect(archiveAction, &QAction::triggered, this, [this, item]() {
+            QString trackingNumber = item->text();
+            auto it = packages.find(trackingNumber);
+            if (it != packages.end()) {
+                it.value().archived = !it.value().archived; // Toggle archived status.
+                item->setData(Qt::UserRole + 2, it.value().archived);
+                // (Optionally, update the UI appearance of the item to reflect the archived state.)
+            }
+            savePackages();
+        });
+        
         contextMenu.exec(packageList->mapToGlobal(pos));
     });
     
@@ -632,16 +676,19 @@ void MainWindow::editNote()
 
 void MainWindow::savePackages()
 {
-    QStringList packageList;
+    QStringList packageListKeys;
     QMap<QString, QVariant> notes;
+    QMap<QString, QVariant> archivedMap;
     
     for (auto it = packages.begin(); it != packages.end(); ++it) {
-        packageList << it.key();
+        packageListKeys << it.key();
         notes[it.key()] = it.value().note;
+        archivedMap[it.key()] = it.value().archived;
     }
     
-    settings.setValue("trackingNumbers", packageList);
+    settings.setValue("trackingNumbers", packageListKeys);
     settings.setValue("packageNotes", notes);
+    settings.setValue("packageArchived", archivedMap);
     settings.sync();
 }
 
@@ -649,16 +696,17 @@ void MainWindow::loadPackages()
 {
     QStringList savedPackages = settings.value("trackingNumbers").toStringList();
     QMap<QString, QVariant> notes = settings.value("packageNotes").toMap();
-    
+    QMap<QString, QVariant> archivedMap = settings.value("packageArchived").toMap();
+
+    packages.clear(); // Clear any existing package data.
     for (const QString& trackingNumber : savedPackages) {
+        bool isArchived = archivedMap.contains(trackingNumber) ? archivedMap[trackingNumber].toBool() : false;
         PackageData packageData("UNKNOWN", notes[trackingNumber].toString());
+        packageData.archived = isArchived;
         packages[trackingNumber] = packageData;
-        
-        auto item = std::make_unique<QListWidgetItem>(trackingNumber);
-        item->setData(Qt::UserRole, "UNKNOWN");
-        item->setData(Qt::UserRole + 1, packageData.note);
-        packageList->addItem(item.release());
     }
+    // Instead of adding items here, refresh the list according to the current toggle.
+    refreshPackageList();
 }
 
 void MainWindow::mousePressEvent(QMouseEvent* event)
@@ -727,6 +775,12 @@ std::optional<QString> MainWindow::validateTrackingNumber(const QString& number)
 
 void MainWindow::scheduleUpdate(const QString& trackingNumber)
 {
+    auto it = packages.find(trackingNumber);
+    if (it != packages.end() && it.value().archived) {
+        // Skip scheduling API update for archived packages.
+        return;
+    }
+    
     if (!updateQueue.empty() && updateQueue.back() == trackingNumber) {
         return;
     }
@@ -862,4 +916,30 @@ void MainWindow::processUpdateQueue()
     }
     
     isProcessingQueue = false;
+}
+
+void MainWindow::unarchivePackage(const QString& trackingNumber)
+{
+    auto it = packages.find(trackingNumber);
+    if (it != packages.end()) {
+        it.value().archived = false;
+        savePackages();
+        // Refresh the list so the unarchived package is removed when in "archived" view
+        refreshPackageList();
+    }
+}
+
+void MainWindow::refreshPackageList()
+{
+    packageList->clear();
+    // Loop through all packages and add only those matching the current view.
+    for (auto it = packages.begin(); it != packages.end(); ++it) {
+        if (it.value().archived == showArchived) {
+            auto item = std::make_unique<QListWidgetItem>(it.key());
+            item->setData(Qt::UserRole, it.value().status);
+            item->setData(Qt::UserRole + 1, it.value().note);
+            item->setData(Qt::UserRole + 2, it.value().archived);
+            packageList->addItem(item.release());
+        }
+    }
 }

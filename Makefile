@@ -55,18 +55,22 @@ OBJECTS_DIR   = ./
 SOURCES       = main.cpp \
 		mainwindow.cpp \
 		shippoclient.cpp \
-		settingsdialog.cpp qrc_resources.cpp \
+		settingsdialog.cpp \
+		archivedpackageswindow.cpp qrc_resources.cpp \
 		moc_mainwindow.cpp \
 		moc_shippoclient.cpp \
-		moc_settingsdialog.cpp
+		moc_settingsdialog.cpp \
+		moc_archivedpackageswindow.cpp
 OBJECTS       = main.o \
 		mainwindow.o \
 		shippoclient.o \
 		settingsdialog.o \
+		archivedpackageswindow.o \
 		qrc_resources.o \
 		moc_mainwindow.o \
 		moc_shippoclient.o \
-		moc_settingsdialog.o
+		moc_settingsdialog.o \
+		moc_archivedpackageswindow.o
 DIST          = /opt/homebrew/share/qt/mkspecs/features/spec_pre.prf \
 		/opt/homebrew/share/qt/mkspecs/features/device_config.prf \
 		/opt/homebrew/Cellar/qt/6.7.3/share/qt/mkspecs/common/unix.conf \
@@ -412,10 +416,12 @@ DIST          = /opt/homebrew/share/qt/mkspecs/features/spec_pre.prf \
 		/opt/homebrew/share/qt/mkspecs/features/lex.prf \
 		package-tracker.pro mainwindow.h \
 		shippoclient.h \
-		settingsdialog.h main.cpp \
+		settingsdialog.h \
+		archivedpackageswindow.h main.cpp \
 		mainwindow.cpp \
 		shippoclient.cpp \
-		settingsdialog.cpp
+		settingsdialog.cpp \
+		archivedpackageswindow.cpp
 QMAKE_TARGET  = PackageTracker
 DESTDIR       = 
 TARGET        = PackageTracker.app/Contents/MacOS/PackageTracker
@@ -1170,8 +1176,8 @@ distdir: FORCE
 	$(COPY_FILE) --parents $(DIST) $(DISTDIR)/
 	$(COPY_FILE) --parents resources.qrc $(DISTDIR)/
 	$(COPY_FILE) --parents /opt/homebrew/share/qt/mkspecs/features/data/dummy.cpp $(DISTDIR)/
-	$(COPY_FILE) --parents mainwindow.h shippoclient.h settingsdialog.h $(DISTDIR)/
-	$(COPY_FILE) --parents main.cpp mainwindow.cpp shippoclient.cpp settingsdialog.cpp $(DISTDIR)/
+	$(COPY_FILE) --parents mainwindow.h shippoclient.h settingsdialog.h archivedpackageswindow.h $(DISTDIR)/
+	$(COPY_FILE) --parents main.cpp mainwindow.cpp shippoclient.cpp settingsdialog.cpp archivedpackageswindow.cpp $(DISTDIR)/
 
 
 clean: compiler_clean 
@@ -1212,9 +1218,9 @@ compiler_moc_predefs_clean:
 moc_predefs.h: /opt/homebrew/share/qt/mkspecs/features/data/dummy.cpp
 	/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/clang++ -pipe -stdlib=libc++ -O2 -std=gnu++1z $(EXPORT_ARCH_ARGS) -isysroot /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX15.2.sdk -mmacosx-version-min=14.0 -Wall -Wextra -dM -E -o moc_predefs.h /opt/homebrew/share/qt/mkspecs/features/data/dummy.cpp
 
-compiler_moc_header_make_all: moc_mainwindow.cpp moc_shippoclient.cpp moc_settingsdialog.cpp
+compiler_moc_header_make_all: moc_mainwindow.cpp moc_shippoclient.cpp moc_settingsdialog.cpp moc_archivedpackageswindow.cpp
 compiler_moc_header_clean:
-	-$(DEL_FILE) moc_mainwindow.cpp moc_shippoclient.cpp moc_settingsdialog.cpp
+	-$(DEL_FILE) moc_mainwindow.cpp moc_shippoclient.cpp moc_settingsdialog.cpp moc_archivedpackageswindow.cpp
 moc_mainwindow.cpp: mainwindow.h \
 		/opt/homebrew/opt/qt/lib/QtCore.framework/Headers/QCoreApplication \
 		/opt/homebrew/opt/qt/lib/QtCore.framework/Headers/qcoreapplication.h \
@@ -1316,6 +1322,17 @@ moc_settingsdialog.cpp: settingsdialog.h \
 		moc_predefs.h \
 		/opt/homebrew/share/qt/libexec/moc
 	/opt/homebrew/share/qt/libexec/moc $(DEFINES) --include /Users/mitchellmoss/projects/package-tracker/moc_predefs.h -I/opt/homebrew/share/qt/mkspecs/macx-clang -I/Users/mitchellmoss/projects/package-tracker -I/opt/homebrew/opt/qt/lib/QtCore.framework/Headers -I/opt/homebrew/opt/qt/lib/QtGui.framework/Headers -I/opt/homebrew/opt/qt/lib/QtWidgets.framework/Headers -I/opt/homebrew/lib/QtWidgets.framework/Headers -I/opt/homebrew/lib/QtGui.framework/Headers -I/opt/homebrew/lib/QtNetwork.framework/Headers -I/opt/homebrew/lib/QtCore.framework/Headers -I/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX15.2.sdk/usr/include/c++/v1 -I/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/lib/clang/16/include -I/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX15.2.sdk/usr/include -I/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/include -F/opt/homebrew/lib settingsdialog.h -o moc_settingsdialog.cpp
+
+moc_archivedpackageswindow.cpp: archivedpackageswindow.h \
+		/opt/homebrew/opt/qt/lib/QtWidgets.framework/Headers/QDialog \
+		/opt/homebrew/opt/qt/lib/QtWidgets.framework/Headers/qdialog.h \
+		/opt/homebrew/opt/qt/lib/QtWidgets.framework/Headers/QListWidget \
+		/opt/homebrew/opt/qt/lib/QtWidgets.framework/Headers/qlistwidget.h \
+		/opt/homebrew/opt/qt/lib/QtWidgets.framework/Headers/QVBoxLayout \
+		/opt/homebrew/opt/qt/lib/QtWidgets.framework/Headers/qboxlayout.h \
+		moc_predefs.h \
+		/opt/homebrew/share/qt/libexec/moc
+	/opt/homebrew/share/qt/libexec/moc $(DEFINES) --include /Users/mitchellmoss/projects/package-tracker/moc_predefs.h -I/opt/homebrew/share/qt/mkspecs/macx-clang -I/Users/mitchellmoss/projects/package-tracker -I/opt/homebrew/opt/qt/lib/QtCore.framework/Headers -I/opt/homebrew/opt/qt/lib/QtGui.framework/Headers -I/opt/homebrew/opt/qt/lib/QtWidgets.framework/Headers -I/opt/homebrew/lib/QtWidgets.framework/Headers -I/opt/homebrew/lib/QtGui.framework/Headers -I/opt/homebrew/lib/QtNetwork.framework/Headers -I/opt/homebrew/lib/QtCore.framework/Headers -I/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX15.2.sdk/usr/include/c++/v1 -I/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/lib/clang/16/include -I/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX15.2.sdk/usr/include -I/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/include -F/opt/homebrew/lib archivedpackageswindow.h -o moc_archivedpackageswindow.cpp
 
 compiler_moc_objc_header_make_all:
 compiler_moc_objc_header_clean:
@@ -1502,7 +1519,8 @@ mainwindow.o: mainwindow.cpp mainwindow.h \
 		/opt/homebrew/opt/qt/lib/QtGui.framework/Headers/qaction.h \
 		/opt/homebrew/opt/qt/lib/QtGui.framework/Headers/QIcon \
 		/opt/homebrew/opt/qt/lib/QtGui.framework/Headers/qicon.h \
-		/opt/homebrew/opt/qt/lib/QtWidgets.framework/Headers/QGraphicsDropShadowEffect
+		/opt/homebrew/opt/qt/lib/QtWidgets.framework/Headers/QGraphicsDropShadowEffect \
+		archivedpackageswindow.h
 	$(CXX) -c $(CXXFLAGS) $(INCPATH) -o mainwindow.o mainwindow.cpp
 
 shippoclient.o: shippoclient.cpp shippoclient.h \
@@ -1606,6 +1624,26 @@ settingsdialog.o: settingsdialog.cpp settingsdialog.h \
 		/opt/homebrew/opt/qt/lib/QtWidgets.framework/Headers/qmessagebox.h
 	$(CXX) -c $(CXXFLAGS) $(INCPATH) -o settingsdialog.o settingsdialog.cpp
 
+archivedpackageswindow.o: archivedpackageswindow.cpp archivedpackageswindow.h \
+		/opt/homebrew/opt/qt/lib/QtWidgets.framework/Headers/QDialog \
+		/opt/homebrew/opt/qt/lib/QtWidgets.framework/Headers/qdialog.h \
+		/opt/homebrew/opt/qt/lib/QtWidgets.framework/Headers/QListWidget \
+		/opt/homebrew/opt/qt/lib/QtWidgets.framework/Headers/qlistwidget.h \
+		/opt/homebrew/opt/qt/lib/QtWidgets.framework/Headers/QVBoxLayout \
+		/opt/homebrew/opt/qt/lib/QtWidgets.framework/Headers/qboxlayout.h \
+		/opt/homebrew/opt/qt/lib/QtWidgets.framework/Headers/QMenu \
+		/opt/homebrew/opt/qt/lib/QtWidgets.framework/Headers/qmenu.h \
+		/opt/homebrew/opt/qt/lib/QtGui.framework/Headers/QAction \
+		/opt/homebrew/opt/qt/lib/QtGui.framework/Headers/qaction.h \
+		/opt/homebrew/opt/qt/lib/QtCore.framework/Headers/QSettings \
+		/opt/homebrew/opt/qt/lib/QtCore.framework/Headers/qsettings.h \
+		/opt/homebrew/opt/qt/lib/QtCore.framework/Headers/QMap \
+		/opt/homebrew/opt/qt/lib/QtCore.framework/Headers/qmap.h \
+		/opt/homebrew/opt/qt/lib/QtCore.framework/Headers/QVariant \
+		/opt/homebrew/opt/qt/lib/QtCore.framework/Headers/qvariant.h \
+		/opt/homebrew/opt/qt/lib/QtWidgets.framework/Headers/QListWidgetItem
+	$(CXX) -c $(CXXFLAGS) $(INCPATH) -o archivedpackageswindow.o archivedpackageswindow.cpp
+
 qrc_resources.o: qrc_resources.cpp 
 	$(CXX) -c $(CXXFLAGS) $(INCPATH) -o qrc_resources.o qrc_resources.cpp
 
@@ -1617,6 +1655,9 @@ moc_shippoclient.o: moc_shippoclient.cpp
 
 moc_settingsdialog.o: moc_settingsdialog.cpp 
 	$(CXX) -c $(CXXFLAGS) $(INCPATH) -o moc_settingsdialog.o moc_settingsdialog.cpp
+
+moc_archivedpackageswindow.o: moc_archivedpackageswindow.cpp 
+	$(CXX) -c $(CXXFLAGS) $(INCPATH) -o moc_archivedpackageswindow.o moc_archivedpackageswindow.cpp
 
 ####### Install
 

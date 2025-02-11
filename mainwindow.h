@@ -85,6 +85,8 @@ public:
     ~MainWindow() override;
     void updateApiClients(const QString& shippoToken);
     void applyTheme(bool darkMode);
+    void unarchivePackage(const QString& trackingNumber);
+    void refreshPackageList();
 
 private slots:
     void addPackage();
@@ -107,6 +109,7 @@ private:
         QJsonObject details;
         int retryCount = 0;
         QDateTime lastUpdateAttempt;
+        bool archived = false;
         
         PackageData() = default;
         PackageData(const QString& s, const QString& n) 
@@ -176,6 +179,9 @@ private:
     QPoint dragPosition;
     bool mousePressed;
     bool isProcessingQueue;
+    
+    // New member variable to track if archived packages are shown.
+    bool showArchived = false;
     
     // Mouse event handlers
     void mousePressEvent(QMouseEvent* event) override;

@@ -16,11 +16,13 @@ ICON = $$PWD/icons/app.icns
 SOURCES += main.cpp \
            mainwindow.cpp \
            shippoclient.cpp \
-           settingsdialog.cpp
+           settingsdialog.cpp \
+           archivedpackageswindow.cpp
 
 HEADERS += mainwindow.h \
            shippoclient.h \
-           settingsdialog.h
+           settingsdialog.h \
+           archivedpackageswindow.h
 
 # macOS specific configuration
 QMAKE_MACOSX_DEPLOYMENT_TARGET = 14.0
