@@ -380,7 +380,7 @@ void MainWindow::setupMenuBar()
     });
     
     QMenu* viewMenu = menuBar->addMenu("View");
-    QAction* showArchivedAction = viewMenu->addAction("Show Archived Packages", this, [this](){
+    viewMenu->addAction("Show Archived Packages", this, [this](){
         // Create and show the Archived Packages window (modal dialog)
         auto archivedWindow = new ArchivedPackagesWindow(this);
         connect(archivedWindow, &ArchivedPackagesWindow::requestUnarchive, this, &MainWindow::unarchivePackage);
@@ -423,14 +423,21 @@ void MainWindow::setupConnections()
         bool isArchived = item->data(Qt::UserRole + 2).toBool();
         QAction *archiveAction = contextMenu.addAction(isArchived ? "Unarchive" : "Archive");
         connect(archiveAction, &QAction::triggered, this, [this, item]() {
+            // Extract the actual tracking number by removing the " [Archived]" suffix if present
             QString trackingNumber = item->text();
+            const QString archivedSuffix = " [Archived]";
+            if (trackingNumber.endsWith(archivedSuffix)) {
+                trackingNumber = trackingNumber.left(trackingNumber.length() - archivedSuffix.length());
+            }
+            
             auto it = packages.find(trackingNumber);
             if (it != packages.end()) {
-                it.value().archived = !it.value().archived; // Toggle archived status.
-                item->setData(Qt::UserRole + 2, it.value().archived);
-                // (Optionally, update the UI appearance of the item to reflect the archived state.)
+                // Toggle the archived status.
+                it.value().archived = !it.value().archived;
             }
             savePackages();
+            // Refresh the package list to immediately update the main window.
+            refreshPackageList();
         });
         
         contextMenu.exec(packageList->mapToGlobal(pos));
