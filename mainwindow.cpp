@@ -311,16 +311,35 @@ void MainWindow::setupPackageList()
     packageList->setContextMenuPolicy(Qt::CustomContextMenu);
     packageList->setItemDelegate(new PackageItemDelegate(packageList.get()));
     
-    // Create a toggle control for showing archived packages.
-    QCheckBox* toggleArchived = new QCheckBox("Show Archived", this);
-    toggleArchived->setChecked(false); // default: show non-archived packages.
+    // Create a horizontal layout for the toggle area
+    auto toggleArea = new QWidget(this);
+    auto toggleLayout = new QHBoxLayout(toggleArea);
+    toggleLayout->setContentsMargins(5, 5, 5, 5);
+    
+    // Create the checkbox with text directly on it
+    auto toggleArchived = new QCheckBox("Show Archived Packages", toggleArea);
+    toggleArchived->setChecked(false);
+    toggleArchived->setStyleSheet(R"(
+        QCheckBox {
+            color: #2c3e50;
+            font-size: 13px;
+            padding: 5px;
+        }
+        QCheckBox:hover {
+            background-color: rgba(52, 152, 219, 0.1);
+            border-radius: 4px;
+        }
+    )");
+    
     connect(toggleArchived, &QCheckBox::toggled, this, [this](bool checked) {
         showArchived = checked;
         refreshPackageList();
     });
     
-    // Add the toggle and the package list to the main layout.
-    containerLayout->addWidget(toggleArchived);
+    toggleLayout->addWidget(toggleArchived);
+    toggleLayout->addStretch();
+    
+    containerLayout->addWidget(toggleArea);
     containerLayout->addWidget(packageList.get());
 }
 
