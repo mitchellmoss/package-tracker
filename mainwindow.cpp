@@ -225,6 +225,7 @@ void MainWindow::setupUI()
 {
     setupWindowControls();
     setupInputArea();
+    setupSearchBar();
     setupPackageList();
     setupDetailsView();
     setupMenuBar();
@@ -302,6 +303,15 @@ void MainWindow::setupInputArea()
     inputLayout->addWidget(refreshButton.get());
     
     containerLayout->addLayout(inputLayout.release());
+}
+
+void MainWindow::setupSearchBar()
+{
+    searchBar = std::make_unique<QLineEdit>(this);
+    searchBar->setPlaceholderText("Search packages by tracking number or note...");
+    connect(searchBar.get(), &QLineEdit::textChanged, this, &MainWindow::refreshPackageList);
+    
+    containerLayout->addWidget(searchBar.get());
 }
 
 void MainWindow::setupPackageList()
@@ -852,6 +862,7 @@ void MainWindow::applyTheme(bool darkMode)
     addButton->setStyleSheet(inputStyle);
     removeButton->setStyleSheet(inputStyle);
     refreshButton->setStyleSheet(inputStyle);
+    searchBar->setStyleSheet(inputStyle);
     
     // Package list styling
     packageList->setStyleSheet(QString(
@@ -951,13 +962,35 @@ void MainWindow::unarchivePackage(const QString& trackingNumber)
 void MainWindow::refreshPackageList()
 {
     packageList->clear();
-    // Loop through all packages and add only those matching the current view.
+    QString filterText;
+    // If the search bar exists and has text, use it as our filter (converted to lowercase)
+    if (searchBar && !searchBar->text().isEmpty())
+        filterText = searchBar->text().toLower();
+    
+    // Loop through all packages
     for (auto it = packages.begin(); it != packages.end(); ++it) {
-        if (it.value().archived == showArchived) {
-            auto item = std::make_unique<QListWidgetItem>(it.key());
+        QString trackingNumber = it.key();
+        QString note = it.value().note;
+        bool matchesFilter = true;
+        
+        if (!filterText.isEmpty()) {
+            // When filtering, ignore the archived toggle.
+            if (!trackingNumber.toLower().contains(filterText) && !note.toLower().contains(filterText))
+                matchesFilter = false;
+        } else {
+            // Without a search filter, show only packages that match the current toggle (archived or not)
+            if (it.value().archived != showArchived)
+                matchesFilter = false;
+        }
+        
+        if (matchesFilter) {
+            auto item = std::make_unique<QListWidgetItem>(trackingNumber);
             item->setData(Qt::UserRole, it.value().status);
-            item->setData(Qt::UserRole + 1, it.value().note);
+            item->setData(Qt::UserRole + 1, note);
             item->setData(Qt::UserRole + 2, it.value().archived);
+            // If this package is archived, add a little indicator in the item text.
+            if (it.value().archived)
+                item->setText(trackingNumber + " [Archived]");
             packageList->addItem(item.release());
         }
     }

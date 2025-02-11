@@ -125,6 +125,7 @@ private:
     void setupMenuBar();
     void setupLayout();
     void setupConnections();
+    void setupSearchBar();
     
     // Core functionality
     void loadPackages();
@@ -156,6 +157,7 @@ private:
     std::unique_ptr<QPushButton> refreshButton;
     std::unique_ptr<QLineEdit> trackingInput;
     std::unique_ptr<QLineEdit> noteInput;
+    std::unique_ptr<QLineEdit> searchBar;
     std::unique_ptr<QTextEdit> detailsView;
     
     // Core Components
