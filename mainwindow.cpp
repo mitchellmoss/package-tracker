@@ -411,7 +411,8 @@ void MainWindow::addPackage()
     PackageData packageData("UNKNOWN", note);
     packages[*validatedNumber] = packageData;
     
-    packageList->addItem(item.release());
+    packageList->insertItem(0, item.release());
+    
     trackingInput->clear();
     noteInput->clear();
     
